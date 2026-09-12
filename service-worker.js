@@ -1,5 +1,5 @@
 /* DFinance service worker — cache-first app shell, works offline after the first load. */
-const VERSION = 'dfinance-v1';
+const VERSION = 'dfinance-v2';
 const SHELL = VERSION + '-shell';
 const RUNTIME = VERSION + '-runtime';
 
