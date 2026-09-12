@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>DFinance</title>
+<meta name="description" content="DFinance - track income, spending, loans, savings, investments, net worth and goals in one place.">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0B0B0C">
+<link rel="icon" href="./favicon.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="DFinance">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F6F4; --surface:#FFFFFF; --ink:#1F2A27; --muted:#5B6B66; --line:#D6E0DB; --line-2:#E7EDEA;
+  --pine:#14453A; --pine-2:#1F5E50; --pine-soft:#E3ECE8;
+  --bar:#0B0B0C; --bar-2:#17171A; --gold:#D8A634; --gold-hi:#F6CD6C;
+  --up:#23845A; --up-bg:#DDF1E6; --down:#B8322A; --down-bg:#F9DEDB; --warn:#9A6208; --warn-bg:#FCEBC7;
+  --input:#FFF7D6; --input-line:#E6D08A; --input-focus:#C9A227;
+  --c-dashboard:#14453A; --c-income:#2E8B57; --c-expenses:#C0392B; --c-loans:#6A4FC7; --c-savings:#2E86C1;
+  --c-investments:#D68910; --c-networth:#117A65; --c-goals:#8E44AD; --c-cashflow:#1F618D;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;-webkit-tap-highlight-color:rgba(20,69,58,.08);background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--input-focus);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ---------- top bar ---------- */
+.top{background:var(--bar);color:#fff;padding-top:env(safe-area-inset-top)}
+.top .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;margin-right:auto}
+.brand svg{flex:none}
+.brand .wordmark{letter-spacing:-.01em}
+.brand b{color:var(--gold-hi);font-weight:800}
+.brand .savestate{font-family:var(--body)}
+.savestate{font-family:var(--body);font-size:13px;font-weight:400;letter-spacing:0;color:rgba(255,255,255,.78);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:12px}
+.savestate::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);flex:none}
+.savestate[data-state="saving"]{color:rgba(255,255,255,.9)}
+.savestate[data-state="saving"]::before{background:#F0B85A}
+.savestate[data-state="error"]{color:#F3B8B1}
+.savestate[data-state="error"]::before{background:#F3B8B1}
+.monthpick{display:flex;align-items:center;gap:6px}
+.monthpick label{font-size:14px;opacity:.85}
+.monthpick input{background:#fff;color:var(--ink);border:0;border-radius:8px;padding:9px 10px;min-width:150px;min-height:44px;font-size:16px}
+.iconbtn{background:var(--bar-2);border:0;color:#fff;width:44px;height:44px;border-radius:8px;cursor:pointer;font-size:20px;line-height:1}
+.iconbtn:hover{background:#26262B}
+.settings{position:relative}
+.settings summary{list-style:none;cursor:pointer;background:var(--bar-2);color:var(--gold-hi);padding:7px 14px;border-radius:8px;font-size:15px;min-height:44px;display:flex;align-items:center}
+.settings summary::-webkit-details-marker{display:none}
+.settings[open] summary{background:#2C2C32}
+.settings .pop{position:absolute;right:0;top:calc(100% + 8px);z-index:40;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:16px;width:min(320px,86vw);box-shadow:0 12px 32px rgba(20,69,58,.18)}
+.pop .field{display:grid;gap:4px;margin-bottom:12px}
+.pop .field span{font-size:14px;color:var(--muted)}
+.pop .row{display:flex;gap:8px;flex-wrap:wrap}
+.pop hr{border:0;border-top:1px solid var(--line-2);margin:12px 0}
+.pop p{font-size:13px;color:var(--muted);margin:0 0 10px}
+.settings .pop{max-height:min(72vh,620px);overflow:auto;-webkit-overflow-scrolling:touch}
+#backup .row{display:grid;gap:8px}
+#backup .btn{width:100%;cursor:pointer;font-size:15px}
+.btn.busy{opacity:.55;pointer-events:none}
+.io-msg{margin-top:12px;border-radius:0 10px 10px 0;border-left:4px solid var(--pine);padding:10px 12px;font-size:14px;line-height:1.45;background:var(--pine-soft);color:var(--ink)}
+.io-msg[data-kind="ok"]{background:var(--up-bg);color:var(--up);border-color:var(--up)}
+.io-msg[data-kind="bad"]{background:var(--down-bg);color:var(--down);border-color:var(--down)}
+.io-msg[data-kind="info"]{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+
+/* ---------- tabs ---------- */
+.tabs{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabs .wrap{display:flex;gap:4px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-top:8px;padding-bottom:0}
+.tabs .wrap::-webkit-scrollbar{display:none}
+.tab{flex:none;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:10px 12px 12px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;font-size:15px;min-height:44px;-webkit-tap-highlight-color:transparent}
+.tab i{width:9px;height:9px;border-radius:50%;background:var(--tc)}
+.tab[aria-selected="true"]{color:var(--ink);font-weight:700;border-bottom-color:var(--tc)}
+.tab:hover{color:var(--ink)}
+
+/* ---------- page ---------- */
+main{padding:28px 0 60px}
+.panel[hidden]{display:none}
+.page-head{margin-bottom:22px}
+.page-head h1{font-family:var(--display);font-size:clamp(28px,4vw,38px);line-height:1.1;letter-spacing:-.02em;margin:0 0 6px;color:var(--pine)}
+.page-head p{margin:0;color:var(--muted);max-width:66ch}
+h2{font-family:var(--display);font-size:22px;letter-spacing:-.01em;margin:0 0 4px;color:var(--pine)}
+h3{font-family:var(--display);font-size:17px;margin:0 0 10px;color:var(--ink)}
+.sub{color:var(--muted);font-size:15px;margin:0 0 14px;max-width:70ch}
+.block{margin-top:36px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.legend-key{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin:10px 0 0}
+.legend-key span{display:inline-flex;align-items:center;gap:6px}
+.swatch{display:inline-block;width:22px;height:14px;border-radius:4px;border:1px solid var(--input-line);background:var(--input)}
+.swatch.calc{background:var(--surface);border-color:var(--line)}
+
+/* ---------- hero ---------- */
+.hero{padding:6px 0 4px}
+.hero .when{font-size:15px;color:var(--muted);margin:0 0 8px}
+.hero-line{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.6vw,36px);line-height:1.2;letter-spacing:-.02em;margin:0;max-width:30ch;color:var(--ink)}
+.hero-line b{font-weight:800;color:var(--pine)}
+.hero-line b.neg{color:var(--down)}
+.flow{margin-top:26px}
+.flow-label{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:15px;color:var(--muted);margin-bottom:8px}
+.strip{display:flex;height:48px;border-radius:12px;overflow:hidden;background:var(--line-2)}
+.strip div{height:100%;min-width:3px;transition:flex-basis .35s ease}
+.strip .free{background:repeating-linear-gradient(135deg,#CFE3DA 0 8px,#E3EFE9 8px 16px)}
+.strip .short{background:repeating-linear-gradient(135deg,#F3B8B1 0 8px,#F9DEDB 8px 16px)}
+.flow-keys{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:12px}
+.flow-keys > div{border-top:3px solid var(--k);padding-top:8px}
+.flow-keys .k-name{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.flow-keys .k-val{font-weight:700;font-size:18px}
+.flow-keys .k-per{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.strip div{transition:none}}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line);margin-top:34px}
+.stat{padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
+.stat + .stat{padding-left:16px;border-left:1px solid var(--line)}
+.stat:nth-child(4n+1){border-left:0;padding-left:0}
+.stat .lab{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.stat .val{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.stat .val small{font-size:13px;font-weight:400;color:var(--muted);margin-left:4px}
+.stat .note{font-size:13px;color:var(--muted)}
+.pos{color:var(--up)} .neg{color:var(--down)} .warn{color:var(--warn)}
+
+/* ---------- pills & bars ---------- */
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;background:var(--line-2);color:var(--muted)}
+.pill.good{background:var(--up-bg);color:var(--up)}
+.pill.bad{background:var(--down-bg);color:var(--down)}
+.pill.mid{background:var(--warn-bg);color:var(--warn)}
+.bar{height:10px;background:var(--line-2);border-radius:999px;overflow:hidden;min-width:60px}
+.bar > span{display:block;height:100%;background:var(--bc,var(--up));border-radius:999px;transition:width .35s ease}
+.progress-list{display:grid;gap:14px}
+.progress-item .top-line{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px}
+.progress-item .name{font-weight:700}
+.progress-item .meta{font-size:14px;color:var(--muted);margin-top:4px}
+.progress-item .bar{height:12px}
+.progress-list.two{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 36px}
+.pie-wrap svg{max-width:220px}
+select.in{min-width:140px;font-size:16px;min-height:44px}
+
+/* ---------- charts ---------- */
+.chart{width:100%;min-height:220px;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--body);fill:var(--muted);font-size:12px}
+.chart .axis{stroke:var(--line)}
+.chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;margin-top:10px}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend i{width:12px;height:12px;border-radius:3px;background:var(--lc)}
+.pie-wrap{display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:18px;align-items:center}
+.pie-legend{display:grid;gap:6px;font-size:14px;max-height:260px;overflow:auto}
+.pie-legend div{display:grid;grid-template-columns:12px 1fr auto auto;gap:8px;align-items:center}
+.pie-legend i{width:12px;height:12px;border-radius:3px;background:var(--lc)}
+.pie-legend .p{color:var(--muted);min-width:38px;text-align:right}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+
+/* ---------- editable tables ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table.ed{width:100%;border-collapse:collapse;font-size:15px}
+table.ed th{position:sticky;top:0;background:var(--pine);color:#fff;text-align:left;font-weight:700;font-size:13px;padding:10px 8px;vertical-align:bottom;white-space:normal;min-width:90px}
+table.ed th:first-child{padding-left:14px}
+table.ed th .tipbtn{background:rgba(255,255,255,.2);color:#fff}
+table.ed td{border-top:1px solid var(--line-2);padding:6px 8px;vertical-align:middle}
+table.ed td:first-child{padding-left:14px}
+table.ed td.c{white-space:nowrap}
+table.ed td.r, table.ed th.r{text-align:right}
+table.ed tr.total td{background:var(--pine-soft);font-weight:700;border-top:1px solid var(--line)}
+table.ed tr.hl td{background:#FFF1D6}
+table.ed tr.done td{background:var(--up-bg)}
+table.ed tr.over td.c{color:var(--down)}
+.in{width:100%;min-width:90px;background:var(--input);border:1px solid var(--input-line);border-radius:8px;padding:9px 8px;font-size:16px;min-height:44px}
+.in:focus{border-color:var(--input-focus);outline:none;box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+.in.w-wide{min-width:200px}
+.in[disabled]{background:var(--line-2);border-color:var(--line-2);color:var(--muted)}
+.pct{position:relative;display:block}
+.pct .in{padding-right:24px}
+.pct::after{content:"%";position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+.del{border:0;background:transparent;color:var(--muted);width:44px;height:44px;border-radius:8px;cursor:pointer;font-size:22px;line-height:1}
+.del:hover{background:var(--down-bg);color:var(--down)}
+.tbl-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.btn{border:1px solid var(--pine);background:var(--surface);color:var(--pine);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:16px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--pine-soft)}
+.btn.solid{background:var(--pine);color:#fff}
+.btn.solid:hover{background:var(--pine-2)}
+.btn.ghost{border-color:transparent}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:6px 14px;cursor:pointer;font-size:15px;color:var(--muted);min-height:44px}
+.seg button[aria-pressed="true"]{background:var(--pine);color:#fff}
+
+/* ---------- key figures ---------- */
+.figs{display:flex;flex-wrap:wrap;gap:12px 36px;margin:0 0 20px}
+.fig .lab{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.fig .val{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.fig .val small{font-size:13px;font-weight:400;color:var(--muted);margin-left:4px}
+.callout{border-left:4px solid var(--cc,var(--pine));background:var(--surface);border-radius:0 12px 12px 0;padding:14px 18px;margin:0 0 18px;font-size:16px}
+.callout b{font-weight:700}
+.kv{display:grid;grid-template-columns:1fr auto;gap:0;border-top:1px solid var(--line-2)}
+.kv > div{padding:9px 0;border-bottom:1px solid var(--line-2)}
+.kv > div:nth-child(even){text-align:right;font-weight:700}
+.kv .lab{display:flex;align-items:center;gap:4px}
+.slider{display:grid;gap:6px;margin-top:10px}
+.slider input[type=range]{width:100%;accent-color:var(--c-loans)}
+
+/* ---------- tooltip ---------- */
+.tipbtn{position:relative;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:0;background:var(--line-2);color:var(--pine);font-size:13px;font-weight:700;cursor:pointer;padding:0;flex:none;line-height:1;vertical-align:middle;-webkit-tap-highlight-color:transparent}
+.tipbtn::after{content:"";position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%)}
+.tipbtn:hover{background:var(--pine-soft)}
+#tipbox{position:fixed;z-index:100;max-width:300px;background:var(--ink);color:#fff;font-size:14px;line-height:1.45;padding:10px 12px;border-radius:10px;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+#tipbox.on{opacity:1;transform:none}
+
+footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);font-size:14px}
+
+table.ed tr[hidden]{display:none !important}
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat:nth-child(4n+1){border-left:1px solid var(--line);padding-left:16px}
+  .stat:nth-child(2n+1){border-left:0;padding-left:0}
+  .grid2{grid-template-columns:1fr}
+  .progress-list.two{grid-template-columns:1fr}
+  .flow-keys{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .wrap{padding:0 14px}
+  .top .wrap{gap:10px}
+  .brand{width:100%}
+  .monthpick{flex:1;min-width:0}
+  .monthpick label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .monthpick input{min-width:0;width:auto;flex:1}
+  select.in{min-width:0}
+  main{padding-top:20px}
+  .flow-keys{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pie-wrap{grid-template-columns:1fr}
+  .box{padding:16px}
+  /* tables become stacked cards */
+  .tbl-wrap{border:0;background:transparent;overflow:visible}
+  table.ed, table.ed tbody, table.ed tr, table.ed td{display:block;width:100%}
+  table.ed thead{display:none}
+  table.ed tr{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px 6px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;column-gap:12px}
+  table.ed td, table.ed td:first-child{border:0;padding:5px 0;min-width:0;max-width:100%;overflow-wrap:anywhere}
+  table.ed td > *{max-width:100%}
+  table.ed td.span, table.ed td.first{grid-column:1 / -1}
+  table.ed td::before{content:attr(data-label);display:block;font-size:12px;color:var(--muted);margin-bottom:2px;white-space:normal;overflow-wrap:anywhere}
+  table.ed td.r{text-align:left}
+  table.ed td.act{grid-column:1 / -1;text-align:right;padding:0}
+  table.ed td.act::before{display:none}
+  table.ed tr.total{background:var(--pine-soft)}
+  table.ed tr.total td.first::before{display:none}
+  table.ed tr.total td{background:transparent}
+  table.ed tr.hl{background:#FFF1D6} table.ed tr.done{background:var(--up-bg)}
+  table.ed tr.hl td, table.ed tr.done td{background:transparent}
+  .in{min-width:0}
+  .in.w-wide{min-width:0}
+  .sched table.ed tr{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* ---------- phones: bottom tab bar ---------- */
+@media (max-width:480px){
+  .tabs{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:35;background:var(--surface);border-top:1px solid var(--line);border-bottom:0;box-shadow:0 -4px 20px rgba(20,69,58,.12);padding-bottom:env(safe-area-inset-bottom)}
+  .tabs .wrap{padding:0;gap:0}
+  .tab{flex:0 0 auto;min-width:80px;flex-direction:column;justify-content:center;gap:5px;padding:9px 8px;font-size:12px;line-height:1.2;border-bottom:0;border-top:3px solid transparent;min-height:58px}
+  .tab i{width:8px;height:8px}
+  .tab[aria-selected="true"]{border-top-color:var(--tc);background:var(--pine-soft)}
+  main{padding:20px 0 96px}
+  #tipbox{max-width:calc(100vw - 24px)}
+  .brand{font-size:18px}
+  .savestate{margin-left:auto;font-size:12px}
+  .top .wrap{padding-top:10px;padding-bottom:10px}
+  .settings .pop{width:min(320px,92vw)}
+  .settings summary{font-size:0;width:44px;padding:0;justify-content:center}
+  .settings summary::after{content:"\2699";font-size:21px;line-height:1}
+  .monthpick input{flex:1 1 auto;min-width:0}
+  .figs{gap:12px 24px}
+  footer{padding-bottom:20px}
+}
+@media (max-width:480px) and (display-mode:standalone){
+  .tabs{padding-bottom:max(env(safe-area-inset-bottom),10px)}
+}
+@media (hover:none){
+  .tab:hover{color:var(--muted)}
+  .tab[aria-selected="true"]:hover{color:var(--ink)}
+  .btn:hover{background:var(--surface)}
+  .btn.solid:hover{background:var(--pine)}
+  .del:hover{background:transparent;color:var(--muted)}
+  .iconbtn:hover{background:var(--bar-2)}
+  .tipbtn:hover{background:var(--line-2)}
+}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="15" width="5" height="9" rx="1.6" fill="#AA7C1A"/><rect x="11.5" y="9" width="5" height="15" rx="1.6" fill="#D8A634"/><rect x="20" y="3" width="5" height="21" rx="1.6" fill="#F6CD6C"/><rect x="3" y="25" width="22" height="1.8" rx="0.9" fill="#5C4614"/></svg>
+      <span class="wordmark"><b>D</b>Finance</span>
+      <span class="savestate" id="saveState" role="status" aria-live="polite" data-state="saved">All changes saved</span>
+    </div>
+    <div class="monthpick">
+      <label for="reviewMonth">Month</label>
+      <button type="button" class="iconbtn" id="prevMonth" aria-label="Previous month">‹</button>
+      <input type="month" id="reviewMonth">
+      <button type="button" class="iconbtn" id="nextMonth" aria-label="Next month">›</button>
+    </div>
+    <details class="settings">
+      <summary aria-label="Settings">Settings</summary>
+      <div class="pop">
+        <label class="field"><span>Currency label (for example SAR, USD, EUR)</span><input class="in" id="currency" maxlength="6"></label>
+        <label class="field"><span>First month of your plan year (Cash Flow shows 12 months from here)</span><input class="in" type="month" id="planStart"></label>
+        <hr>
+        <p>Your numbers save themselves on this device as you type. Nothing is sent anywhere.</p>
+        <hr>
+        <div id="backup">
+          <p>Keep a copy you can move to another device, or bring in the Excel planner.</p>
+          <div class="row">
+            <button type="button" class="btn" id="exportJSON">Export backup (.json)</button>
+            <label class="btn">Import backup (.json)<input type="file" id="importJSON" accept=".json,application/json" hidden></label>
+            <button type="button" class="btn" id="exportXLSX">Export Excel (.xlsx)</button>
+            <label class="btn">Import Excel (.xlsx)<input type="file" id="importXLSX" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label>
+          </div>
+          <div id="ioMsg" class="io-msg" role="alert" aria-live="polite" hidden></div>
+        </div>
+        <hr>
+        <div class="row">
+          <button type="button" class="btn ghost" id="resetSample">Show example numbers</button>
+          <button type="button" class="btn ghost" id="resetBlank">Start with a blank plan</button>
+        </div>
+      </div>
+    </details>
+  </div>
+</header>
+<nav class="tabs" aria-label="Sections"><div class="wrap" id="tabs" role="tablist"></div></nav>
+<main><div class="wrap" id="panels"></div></main>
+<footer>
+  <div class="wrap">
+    <div class="legend-key" style="margin:0 0 8px"><span><i class="swatch"></i>Yellow boxes are yours to type in</span><span><i class="swatch calc"></i>Everything else is worked out for you</span><span><span class="tipbtn" aria-hidden="true">?</span>Tap for a plain-language explanation</span></div>
+    <div>Your numbers save automatically on this device. Estimates, not financial advice. Growth and payoff dates assume things carry on as they are today.</div>
+  </div>
+</footer>
+<div id="tipbox" role="tooltip"></div>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./service-worker.js').catch(function () { /* offline mode simply stays off */ });
+  });
+}
+</script>
+<script>
+// ---------- finance model: mirrors Personal_Finance_Planner.xlsx formulas ----------
+const M = (() => {
+  const num = v => (v === '' || v === null || v === undefined || isNaN(+v)) ? 0 : +v;
+  const has = v => !(v === '' || v === null || v === undefined);
+  // dates as "YYYY-MM-DD"; months as "YYYY-MM"
+  const ym = s => { const [y, m] = String(s).split('-').map(Number); return { y, m }; };
+  const first = s => { const { y, m } = ym(s); return `${y}-${String(m).padStart(2, '0')}-01`; };
+  const eom = s => { const { y, m } = ym(s); return `${y}-${String(m).padStart(2, '0')}-31`; };
+  const edate = (s, k) => { const { y, m } = ym(s); const t = y * 12 + (m - 1) + k; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}-01`; };
+  const mdiff = (a, b) => { const A = ym(a), B = ym(b); return (A.y - B.y) * 12 + (A.m - B.m); }; // months from b to a
+  const normDate = s => !has(s) ? '' : (String(s).length === 7 ? s + '-01' : String(s));
+
+  // Excel financial functions
+  const PMT = (r, n, pv, fv = 0) => r === 0 ? -(pv + fv) / n : -(pv * Math.pow(1 + r, n) + fv) * r / (Math.pow(1 + r, n) - 1);
+  const FV = (r, n, pmt, pv) => r === 0 ? -(pv + pmt * n) : -(pv * Math.pow(1 + r, n) + pmt * (Math.pow(1 + r, n) - 1) / r);
+  const NPER = (r, pmt, pv, fv = 0) => {
+    if (r === 0) return pmt === 0 ? NaN : -(pv + fv) / pmt;
+    const a = (pmt - fv * r), b = (pmt + pv * r);
+    if (a / b <= 0) return NaN;
+    return Math.log(a / b) / Math.log(1 + r);
+  };
+  const ceil = x => Math.ceil(x - 1e-9);
+
+  function compute(S) {
+    const RM = first(S.settings.reviewMonth + (S.settings.reviewMonth.length === 7 ? '' : ''));
+    const PS = first(S.settings.planStart);
+    const out = { RM, PS };
+
+    // ---------------- Income
+    const inc = S.income.map(r => {
+      const on = has(r.name);
+      const amt = num(r.amount);
+      let monthly = 0;
+      if (on && has(r.amount)) {
+        const f = r.freq || 'Monthly';
+        monthly = f === 'Monthly' ? amt : f === 'Every 2 weeks' ? amt * 26 / 12 : f === 'Weekly' ? amt * 52 / 12 : f === 'Yearly' ? amt / 12 : 0;
+      }
+      return { on, monthly, from: has(r.start) ? normDate(r.start) : '1900-01-01', until: has(r.end) ? normDate(r.end) : '2999-12-31', amt, freq: r.freq, start: normDate(r.start), kind: r.kind };
+    });
+    out.income = {
+      rows: inc,
+      typicalMonthly: inc.reduce((a, r) => a + r.monthly, 0),
+      oneTimeYear: inc.filter(r => r.freq === 'One-time' && r.start && r.start >= PS && r.start < edate(PS, 12)).reduce((a, r) => a + r.amt, 0),
+    };
+    out.income.byKind = {};
+    inc.forEach(r => { if (r.kind) out.income.byKind[r.kind] = (out.income.byKind[r.kind] || 0) + r.monthly; });
+    const incomeIn = m => inc.filter(r => r.on && r.from <= eom(m) && r.until >= m).reduce((a, r) => a + r.monthly, 0)
+      + inc.filter(r => r.freq === 'One-time' && r.start && r.start >= m && r.start <= eom(m)).reduce((a, r) => a + r.amt, 0);
+
+    // ---------------- Expenses
+    const log = S.log.map(l => ({ ...l, date: normDate(l.date), amt: num(l.amount) }));
+    const spentIn = (area, m) => log.filter(l => l.area === area && l.date && l.date >= m && l.date <= eom(m)).reduce((a, l) => a + l.amt, 0);
+    const bud = S.budget.map(b => {
+      const on = has(b.name);
+      const budget = num(b.budget);
+      const spent = on ? spentIn(b.name, RM) : 0;
+      let status = '';
+      if (on) status = budget === 0 ? (spent > 0 ? 'No budget set' : '-') : spent > budget ? 'Over budget' : (b.type !== 'Fixed' && spent >= 0.8 * budget) ? 'Close to limit' : 'On track';
+      return { on, name: b.name, type: b.type, budget, spent, left: on ? budget - spent : null, pct: (on && budget !== 0) ? spent / budget : null, status };
+    });
+    const totBudget = bud.reduce((a, b) => a + b.budget, 0);
+    const totSpent = bud.reduce((a, b) => a + b.spent, 0);
+    bud.forEach(b => b.chart = !b.on ? 0 : (totSpent > 0 ? b.spent : b.budget));
+    out.expenses = {
+      rows: bud, totBudget, totSpent, totLeft: totBudget - totSpent,
+      totPct: totBudget === 0 ? null : totSpent / totBudget,
+      totStatus: totBudget === 0 ? '' : totSpent > totBudget ? 'Over budget' : totSpent >= 0.8 * totBudget ? 'Close to limit' : 'On track',
+      fixedBudget: bud.filter(b => b.type === 'Fixed').reduce((a, b) => a + b.budget, 0),
+      fixedSpent: bud.filter(b => b.type === 'Fixed').reduce((a, b) => a + b.spent, 0),
+      varBudget: bud.filter(b => b.type === 'Variable').reduce((a, b) => a + b.budget, 0),
+      varSpent: bud.filter(b => b.type === 'Variable').reduce((a, b) => a + b.spent, 0),
+      logType: log.map(l => !has(l.area) ? '' : (bud.find(b => b.on && b.name === l.area)?.type || 'Not in budget')),
+      overCount: bud.filter(b => b.status === 'Over budget').length,
+    };
+
+    // ---------------- Loans
+    const loans = S.loans.map(l => {
+      const o = { name: l.name, valid: false };
+      if (!has(l.name) || !has(l.amount) || !has(l.years)) return o;
+      const A = num(l.amount), r = num(l.rate) / 12, n = num(l.years) * 12, E = num(l.extra);
+      const firstPay = normDate(l.first);
+      o.valid = true;
+      o.pmt = n > 0 ? PMT(r, n, -A) : NaN;
+      o.total = o.pmt + E;
+      o.nper = NPER(r, -o.total, A);
+      o.ok = isFinite(o.pmt) && isFinite(o.nper) && o.nper > 0;
+      if (!o.ok) return o;
+      o.hasFirst = !!firstPay;
+      const K = ceil(o.nper);
+      o.paid = firstPay ? Math.max(0, Math.min(K, mdiff(RM, firstPay) + 1)) : null;
+      o.owed = firstPay ? Math.max(0, -FV(r, o.paid, -o.total, A)) : null;
+      o.payoffExtra = firstPay ? edate(firstPay, K - 1) : null;
+      o.payoffNoExtra = firstPay ? edate(firstPay, n - 1) : null;
+      o.sooner = n - K;
+      o.intNo = o.pmt * n - A;
+      o.intWith = o.total * o.nper - A;
+      o.saved = Math.round((o.intNo - o.intWith) * 100) / 100;
+      o.A = A; o.rate = num(l.rate); o.n = n; o.E = E; o.first = firstPay; o.K = K;
+      return o;
+    });
+    const live = loans.filter(l => l.ok);
+    out.loans = {
+      rows: loans,
+      totBorrowed: live.reduce((a, l) => a + l.A, 0),
+      totMonthly: live.filter(l => l.owed > 0).reduce((a, l) => a + l.total, 0),
+      totOwed: live.reduce((a, l) => a + (l.owed || 0), 0),
+      totSaved: live.reduce((a, l) => a + l.saved, 0),
+      debtFree: live.filter(l => l.payoffExtra).map(l => l.payoffExtra).sort().pop() || '',
+    };
+    const loanPay = m => live.filter(l => l.first && l.first <= eom(m) && l.payoffExtra >= m).reduce((a, l) => a + l.total, 0);
+    const sel = live.find(l => l.name === S.settings.scheduleLoan) || null;
+    const sched = [];
+    if (sel && sel.first && sel.pmt > 0) {
+      const r = sel.rate / 12;
+      let owed = sel.A;
+      for (let k = 1; k <= Math.min(sel.n, 360); k++) {
+        if (k > 1 && owed <= 0.005) break;
+        const interest = owed * r;
+        const req = Math.min(sel.pmt, owed + interest);
+        const extra = Math.min(sel.E, owed + interest - req);
+        const principal = req + extra - interest;
+        const after = Math.max(0, owed - principal);
+        sched.push({ k, date: edate(sel.first, k - 1), before: owed, req, extra, interest, principal, after, noExtra: Math.max(0, -FV(r, k, -sel.pmt, sel.A)) });
+        owed = after;
+      }
+    }
+    out.loans.selected = sel; out.loans.schedule = sched;
+
+    // ---------------- Savings
+    const pots = S.pots.map(p => ({ on: has(p.name), name: p.name, bal: num(p.balance), dep: num(p.deposit), rate: num(p.rate) }));
+    const totSav = pots.reduce((a, p) => a + p.bal, 0);
+    pots.forEach(p => { p.in12 = p.on ? FV(p.rate / 12, 12, -p.dep, -p.bal) : null; p.share = (p.on && totSav !== 0) ? p.bal / totSav : null; });
+    const ef = {};
+    const efPot = pots.filter(p => p.on && p.name === S.settings.efPot);
+    ef.mustPay = out.expenses.fixedBudget + out.loans.totMonthly;
+    ef.monthsWanted = num(S.settings.efMonths);
+    ef.target = ef.mustPay * ef.monthsWanted;
+    ef.saved = efPot.reduce((a, p) => a + p.bal, 0);
+    ef.months = ef.mustPay === 0 ? 0 : ef.saved / ef.mustPay;
+    ef.progress = ef.target === 0 ? 0 : Math.min(1, ef.saved / ef.target);
+    ef.needed = Math.max(0, ef.target - ef.saved);
+    const efDep = efPot.reduce((a, p) => a + p.dep, 0), efRate = efPot.reduce((a, p) => a + p.rate, 0);
+    ef.toReach = ef.needed === 0 ? 0 : efDep <= 0 ? null : ceil(NPER(efRate / 12, -efDep, -ef.saved, ef.target));
+    ef.fundedBy = ef.toReach === null ? '' : edate(RM, ef.toReach);
+    ef.status = ef.target === 0 ? 'Add your budget and loans first' : ef.saved >= ef.target ? 'Fully funded. Well done!' : ef.months >= 3 ? 'Good start: 3+ months covered' : 'Keep building: aim for 3 months first';
+    out.savings = { rows: pots, totBal: totSav, totDep: pots.reduce((a, p) => a + p.dep, 0), tot12: pots.reduce((a, p) => a + (p.in12 || 0), 0), ef };
+
+    // ---------------- Investments
+    const hold = S.holdings.map(h => {
+      const on = has(h.name);
+      const o = { on, name: h.name, contrib: num(h.contribution), growth: num(h.growth) };
+      if (!on) return o;
+      o.putIn = num(h.units) * num(h.avgPrice);
+      o.value = num(h.units) * num(h.price);
+      o.gain = o.value - o.putIn;
+      o.gainPct = o.putIn === 0 ? null : o.gain / o.putIn;
+      o.in10 = FV(o.growth / 12, 120, -o.contrib, -o.value);
+      return o;
+    });
+    const hv = hold.filter(h => h.on);
+    const I = { rows: hold, totContrib: hold.reduce((a, h) => a + h.contrib, 0), totIn: hv.reduce((a, h) => a + h.putIn, 0), totValue: hv.reduce((a, h) => a + h.value, 0), totIn10: hv.reduce((a, h) => a + h.in10, 0) };
+    I.totGain = I.totValue - I.totIn; I.totGainPct = I.totIn === 0 ? null : I.totGain / I.totIn;
+    hv.forEach(h => h.share = I.totValue === 0 ? null : h.value / I.totValue);
+    I.avgGrowth = I.totValue === 0 ? 0 : hv.reduce((a, h) => a + h.value * h.growth, 0) / I.totValue;
+    const sc = S.settings.scenarios.map(num);
+    I.projection = S.settings.years.map(y => ({ y: num(y), putIn: I.totValue + I.totContrib * 12 * num(y), vals: sc.map(g => FV(g / 12, num(y) * 12, -I.totContrib, -I.totValue)) }));
+    out.investments = I;
+
+    // ---------------- Net worth
+    const nw = S.networth;
+    const own = [num(nw.cash), totSav, I.totValue, num(nw.home), num(nw.car), num(nw.valuables), num(nw.otherOwn)];
+    const owe = [out.loans.totOwed, num(nw.card), num(nw.family), num(nw.otherOwe)];
+    const N = { own: own.reduce((a, b) => a + b, 0), owe: owe.reduce((a, b) => a + b, 0) };
+    N.net = N.own - N.owe;
+    N.borrowedShare = N.own === 0 ? null : N.owe / N.own;
+    const hist = S.history.map(h => ({ ...h, net: (has(h.own) || has(h.owe)) ? num(h.own) - num(h.owe) : null }));
+    hist.forEach((h, i) => h.change = (i === 0 || h.net === null || hist[i - 1].net === null) ? null : h.net - hist[i - 1].net);
+    const lastNet = hist.filter(h => h.net !== null).pop();
+    N.change = lastNet ? N.net - lastNet.net : null;
+    N.history = hist;
+    out.networth = N;
+
+    // ---------------- Goals
+    const goals = S.goals.map(g => {
+      const on = has(g.name);
+      const o = { on, name: g.name };
+      if (!on) return o;
+      const pot = has(g.pot) ? pots.filter(p => p.on && p.name === g.pot) : null;
+      o.target = num(g.target);
+      o.saved = pot ? pot.reduce((a, p) => a + p.bal, 0) : num(g.saved);
+      o.deposit = pot ? pot.reduce((a, p) => a + p.dep, 0) : num(g.deposit);
+      o.growth = pot ? pot.reduce((a, p) => a + p.rate, 0) : num(g.growth);
+      o.progress = o.target === 0 ? null : Math.min(1, o.saved / o.target);
+      const d = normDate(g.date);
+      o.monthsLeft = d ? Math.max(0, mdiff(d, RM)) : null;
+      if (o.target !== 0 && d) {
+        o.needed = o.saved >= o.target ? 0 : o.monthsLeft === 0 ? o.target - o.saved : Math.max(0, -PMT(o.growth / 12, o.monthsLeft, -o.saved, o.target));
+      } else o.needed = null;
+      o.expected = d ? FV(o.growth / 12, o.monthsLeft, -o.deposit, -o.saved) : null;
+      o.status = o.target === 0 ? '' : o.saved >= o.target ? 'Reached' : !d ? 'Add a target date' : o.monthsLeft === 0 ? 'Date has passed' : o.deposit >= o.needed - 0.5 ? 'On track' : 'Needs a boost';
+      o.next = o.status === 'Needs a boost' ? `Add about ${Math.round(o.needed - o.deposit).toLocaleString('en-US')} more per month` : o.status === 'Date has passed' ? 'Pick a new date' : o.status === 'Reached' ? 'Celebrate, then set your next goal' : o.status === 'On track' ? 'Keep going' : '';
+      return o;
+    });
+    out.goals = { rows: goals, onTrack: goals.filter(g => g.status === 'On track' || g.status === 'Reached').length, count: goals.filter(g => g.on && g.status).length };
+
+    // ---------------- Cash flow (12 months from plan start)
+    const months = Array.from({ length: 12 }, (_, i) => edate(PS, i));
+    let run = 0;
+    const cf = months.map(m => {
+      const c = { m };
+      c.in = incomeIn(m);
+      c.planned = totBudget;
+      c.logged = log.filter(l => l.date && l.date >= m && l.date <= eom(m)).reduce((a, l) => a + l.amt, 0);
+      c.counted = m < RM ? (c.logged > 0 ? c.logged : c.planned) : Math.max(c.planned, c.logged);
+      c.loans = loanPay(m);
+      c.outTotal = c.counted + c.loans;
+      c.left = c.in - c.outTotal;
+      c.share = c.in > 0 ? c.left / c.in : 0;
+      c.sav = out.savings.totDep;
+      c.inv = I.totContrib;
+      c.unassigned = c.left - c.sav - c.inv;
+      run += c.left; c.running = run;
+      return c;
+    });
+    const sum = k => cf.reduce((a, c) => a + c[k], 0);
+    out.cashflow = { months: cf, total: { in: sum('in'), planned: sum('planned'), logged: sum('logged'), counted: sum('counted'), loans: sum('loans'), outTotal: sum('outTotal'), left: sum('left'), sav: sum('sav'), inv: sum('inv'), unassigned: sum('unassigned') } };
+    out.cashflow.total.share = out.cashflow.total.in > 0 ? out.cashflow.total.left / out.cashflow.total.in : 0;
+
+    // ---------------- Dashboard
+    const cur = cf.find(c => c.m === RM);
+    const D = {
+      inPlanYear: !!cur,
+      netWorth: N.net,
+      moneyIn: cur ? cur.in : out.income.typicalMonthly,
+      spending: cur ? cur.counted : Math.max(totBudget, totSpent),
+      loanPay: cur ? cur.loans : out.loans.totMonthly,
+    };
+    D.left = D.moneyIn - D.spending - D.loanPay;
+    D.share = D.moneyIn > 0 ? D.left / D.moneyIn : 0;
+    D.savings = totSav; D.investments = I.totValue; D.debt = N.owe; D.efMonths = ef.months;
+    D.overBudget = out.expenses.overCount; D.goalsText = `${out.goals.onTrack} of ${out.goals.count}`; D.debtFree = out.loans.debtFree;
+    D.sav = out.savings.totDep; D.inv = I.totContrib; D.unassigned = D.left - D.sav - D.inv;
+    out.dashboard = D;
+    return out;
+  }
+  return { compute, edate, first, mdiff, num, has, PMT, FV, NPER };
+})();
+if (typeof module !== 'undefined') module.exports = M;
+
+function sampleState(today) {
+  const t = today || new Date();
+  const ymStr = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+  const sept = [[1,"Phone and internet","Monthly plan",350],[1,"Insurance","Car insurance",300],[1,"Family support","Monthly support",1000],[1,"Subscriptions","Streaming and cloud storage",150],[2,"Groceries","Weekly shop",620],[3,"Utilities (electricity, water)","Electricity bill",430],[4,"Transport and fuel","Fuel",180],[5,"Eating out and coffee","Dinner with friends",410],[5,"Gifts and charity","Donation",200],[6,"Shopping and clothes","New shoes",580],[7,"Fun and entertainment","Cinema",150],[8,"Groceries","Weekly shop",540],[9,"Eating out and coffee","Coffee and lunches",380],[10,"Eating out and coffee","Food delivery",260],[10,"Courses and learning","Online course",300]];
+  const aug = [[1,"Phone and internet","Monthly plan",350],[1,"Insurance","Car insurance",300],[1,"Family support","Monthly support",1000],[1,"Subscriptions","Streaming and cloud storage",150],[3,"Groceries","Weekly shop",580],[5,"Utilities (electricity, water)","Electricity bill",520],[7,"Transport and fuel","Fuel",210],[9,"Eating out and coffee","Weekend brunch",290],[10,"Groceries","Weekly shop",510],[12,"Shopping and clothes","Summer sale",860],[14,"Fun and entertainment","Bowling night",240],[15,"Health and pharmacy","Pharmacy",130],[17,"Groceries","Weekly shop",470],[18,"Eating out and coffee","Coffee and lunches",330],[20,"Transport and fuel","Fuel",220],[22,"Gifts and charity","Birthday gift",350],[24,"Groceries","Weekly shop",520],[25,"Personal care","Haircut",120],[27,"Eating out and coffee","Dinner out",260],[28,"Courses and learning","Online course",300],[30,"Transport and fuel","Fuel",190]];
+  const jul = [[1,"Phone and internet","Monthly plan",350],[1,"Insurance","Car insurance",300],[1,"Family support","Monthly support",1000],[1,"Subscriptions","Streaming and cloud storage",150],[4,"Groceries","Weekly shop",560],[6,"Utilities (electricity, water)","Electricity bill",560],[8,"Transport and fuel","Fuel",200],[11,"Groceries","Weekly shop",490],[13,"Eating out and coffee","Dinner with family",350],[16,"Fun and entertainment","Concert",300],[18,"Groceries","Weekly shop",530],[20,"Shopping and clothes","Shirts",420],[22,"Transport and fuel","Fuel",210],[25,"Groceries","Weekly shop",450],[26,"Gifts and charity","Donation",400],[28,"Eating out and coffee","Coffee and lunches",310],[29,"Health and pharmacy","Doctor visit",200],[30,"Courses and learning","Online course",300]];
+  const mk = (mon, arr) => arr.map(([d, area, what, amount]) => ({ date: `2026-${mon}-${String(d).padStart(2, '0')}`, area, what, amount }));
+  return {
+    settings: {
+      currency: 'SAR',
+      reviewMonth: ymStr(t.getFullYear(), t.getMonth() + 1),
+      planStart: ymStr(t.getFullYear(), 1),
+      scheduleLoan: 'Home mortgage',
+      efPot: 'Emergency fund',
+      efMonths: 6,
+      scenarios: [0.04, 0.07, 0.10],
+      years: [1, 3, 5, 10, 15, 20, 25, 30],
+    },
+    income: [
+      { name: 'Main job salary', kind: 'Salary / wages', freq: 'Monthly', amount: 16000, start: '2026-01-01', end: '', note: 'Take-home pay after deductions' },
+      { name: 'Housing allowance', kind: 'Allowance', freq: 'Monthly', amount: 4000, start: '2026-01-01', end: '', note: 'Paid with salary' },
+      { name: 'Freelance design work', kind: 'Side income', freq: 'Monthly', amount: 1500, start: '2026-03-01', end: '', note: 'Rough average of recent months' },
+      { name: 'Weekend tutoring', kind: 'Side income', freq: 'Weekly', amount: 300, start: '2026-06-01', end: '2026-12-31', note: 'Stops at the end of the year' },
+      { name: 'Year-end bonus', kind: 'Salary / wages', freq: 'One-time', amount: 12000, start: '2026-12-20', end: '', note: 'Only counted in December' },
+    ],
+    budget: [
+      ['Utilities (electricity, water)', 'Fixed', 450], ['Groceries', 'Variable', 2000], ['Transport and fuel', 'Variable', 600],
+      ['Phone and internet', 'Fixed', 350], ['Insurance', 'Fixed', 300], ['Family support', 'Fixed', 1000],
+      ['Eating out and coffee', 'Variable', 900], ['Shopping and clothes', 'Variable', 700], ['Fun and entertainment', 'Variable', 400],
+      ['Health and pharmacy', 'Variable', 250], ['Courses and learning', 'Fixed', 300], ['Gifts and charity', 'Variable', 600],
+      ['Subscriptions', 'Fixed', 150], ['Personal care', 'Variable', 250],
+    ].map(([name, type, budget]) => ({ name, type, budget })),
+    log: [...mk('09', sept), ...mk('08', aug), ...mk('07', jul)],
+    loans: [
+      { name: 'Home mortgage', kind: 'Mortgage', amount: 700000, rate: 0.052, years: 25, first: '2024-03-01', extra: 500 },
+      { name: 'Car loan', kind: 'Car loan', amount: 90000, rate: 0.045, years: 5, first: '2025-06-01', extra: '' },
+    ],
+    pots: [
+      { name: 'Emergency fund', purpose: 'Safety net for job loss or surprise bills', balance: 18000, deposit: 2000, rate: 0.03 },
+      { name: 'Holiday trip', purpose: 'Trip to Japan next summer', balance: 3500, deposit: 800, rate: '' },
+      { name: 'Home furniture', purpose: 'New sofa and dining table', balance: 2600, deposit: 400, rate: '' },
+    ],
+    holdings: [
+      { name: 'Global index fund', kind: 'Index fund / ETF', where: 'Investing app', units: 120, avgPrice: 95, price: 112, contribution: 1500, growth: 0.07 },
+      { name: 'Local shares fund', kind: 'Mutual fund', where: 'Bank investment account', units: 200, avgPrice: 30, price: 34, contribution: 500, growth: 0.06 },
+      { name: 'Sukuk fund', kind: 'Sukuk / bonds', where: 'Bank investment account', units: 50, avgPrice: 100, price: 103, contribution: 300, growth: 0.04 },
+      { name: 'Gold savings', kind: 'Gold', where: 'Gold dealer', units: 10, avgPrice: 280, price: 310, contribution: '', growth: 0.03 },
+    ],
+    networth: { cash: 6500, home: 820000, car: 70000, valuables: '', otherOwn: '', card: 2300, family: '', otherOwe: '' },
+    history: [
+      ['2026-01', 921000, 731500, 'Started tracking'], ['2026-02', 924800, 729400, ''], ['2026-03', 928300, 727200, ''],
+      ['2026-04', 925000, 725300, 'Investments dipped'], ['2026-05', 934900, 723100, ''], ['2026-06', 938200, 721000, ''],
+      ['2026-07', 941600, 719200, ''], ['2026-08', 945300, 716900, ''],
+    ].map(([month, own, owe, note]) => ({ month, own, owe, note })),
+    goals: [
+      { name: 'Holiday to Japan', target: 10500, date: '2027-06', pot: 'Holiday trip', saved: '', deposit: '', growth: '' },
+      { name: 'New furniture', target: 7000, date: '2027-09', pot: 'Home furniture', saved: '', deposit: '', growth: '' },
+      { name: "Master's course fees", target: 25000, date: '2027-09', pot: '', saved: 4000, deposit: 1000, growth: 0 },
+      { name: 'Invest my first 100,000', target: 100000, date: '2029-12', pot: '', saved: 28000, deposit: 2300, growth: 0.07 },
+    ],
+  };
+}
+if (typeof module !== 'undefined') module.exports = sampleState;
+
+(() => {
+'use strict';
+let S = sampleState();
+let R = M.compute(S);
+const UI = { tab: 'dashboard', logFilter: 'month' };
+
+/* ---------------- helpers ---------------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cur = () => esc(S.settings.currency || '');
+const ok = v => v !== null && v !== undefined && v !== '' && isFinite(v);
+const fm = v => !ok(v) ? '' : (Math.abs(v) < 0.5 ? '–' : Math.round(v).toLocaleString('en-US'));
+const fm0 = v => !ok(v) ? '' : Math.round(v).toLocaleString('en-US');
+const fm2 = v => !ok(v) ? '' : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmc = v => !ok(v) ? '' : `${fm(v)}<small> ${cur()}</small>`;
+const fmt = v => !ok(v) ? '' : `${fm(v)} ${S.settings.currency || ''}`.trim();
+const fp = (v, d = 0) => !ok(v) ? '' : `${(v * 100).toFixed(d)}%`;
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const fmon = (s, long) => { if (!s) return ''; const [y, m] = String(s).split('-').map(Number); if (!y || !m) return ''; return `${long ? MONTHS[m - 1] : MONTHS[m - 1].slice(0, 3)} ${y}`; };
+const fdate = s => { if (!s) return ''; const [y, m, d] = String(s).split('-').map(Number); return d ? `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}` : fmon(s); };
+const abbr = v => { const a = Math.abs(v); return a >= 1e6 ? `${(v / 1e6).toFixed(a >= 1e7 ? 0 : 1)}M` : a >= 1e3 ? `${Math.round(v / 1e3)}K` : `${Math.round(v)}`; };
+const signCls = v => !ok(v) || Math.abs(v) < 0.5 ? '' : v < 0 ? 'neg' : 'pos';
+const pill = s => { if (!s || s === '-') return s === '-' ? '<span class="muted">–</span>' : ''; const good = /On track|Reached|Fully funded|Good start|Keep going/.test(s); const bad = /Over budget|Needs a boost|Date has passed|Keep building/.test(s); const mid = /Close to limit|No budget|Not in budget|Add /.test(s); return `<span class="pill ${good ? 'good' : bad ? 'bad' : mid ? 'mid' : ''}">${esc(s)}</span>`; };
+const barHTML = (p, color) => `<div class="bar" style="--bc:${color}"><span style="width:${Math.max(0, Math.min(1, p || 0)) * 100}%"></span></div>`;
+const TIP = t => `<button type="button" class="tipbtn" data-tip="${esc(t)}" aria-label="What does this mean?">?</button>`;
+function el(tag, attrs = {}, html) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (k === 'class') e.className = v; else e.setAttribute(k, v === true ? '' : v);
+  }
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+/* ---------------- plain-language explanations ---------------- */
+const T = {
+  freq: 'How often you receive it. Monthly = every month. Every 2 weeks = 26 paydays a year. Weekly = 52 a year. Yearly = once a year, spread across 12 months. One-time = only once, like a bonus; it counts only in the month it arrives.',
+  typical: 'What this source adds up to in an average month. One-time money shows as zero here but appears in its own month on the Cash Flow tab.',
+  fixed: 'Fixed = about the same every month and hard to change (phone plan, insurance). Variable = changes month to month and is easier to cut back (eating out, shopping).',
+  budget: 'Your budget is the most you want to spend in this area each month.',
+  pctUsed: 'Over 100% means you spent more than you planned. It turns red as a warning.',
+  rate: 'The yearly price of borrowing, shown as a percentage. It is on your loan contract (sometimes called APR or profit rate).',
+  extra: 'Any amount you choose to pay on top of the required payment. It goes straight to cutting what you owe, so you finish sooner and pay less interest overall.',
+  required: 'The payment the lender expects each month, worked out from the amount, rate and length.',
+  owed: 'Estimated amount you still owe, assuming every payment was made on time. Your bank app shows the exact figure.',
+  interest: 'Interest is what you pay the lender on top of the amount you borrowed, added up over the whole loan.',
+  savRate: 'What your savings account pays you each year, as a percentage. Leave empty if it pays nothing.',
+  in12: 'What this pot would hold one year from now if you keep making the same monthly deposit.',
+  ef: 'An emergency fund is cash kept only for real emergencies: losing your job, a medical bill, a broken car. It stops a bad month from turning into debt.',
+  mustPay: 'Your fixed spending (from your budget) plus your loan payments. These are the bills you must pay even in a tough month.',
+  units: 'How many pieces (units or shares) of this investment you own. Your app or statement shows it.',
+  avg: 'The average price you paid for each unit across all your purchases.',
+  growth: 'A guess at how much the value rises each year on average. Broad stock funds have historically averaged roughly 6-8% over long periods, but some years fall. A lower number is safer.',
+  gain: 'Value today minus the money you put in. Short-term dips are normal.',
+  in10: 'Estimated value after 10 years if you keep adding your monthly contribution and growth matches your guess. Not a promise.',
+  netWorth: 'Everything you own minus everything you owe. It can be negative when you are starting out, especially with a big loan. What matters is that it rises over time.',
+  goalPot: 'Pick a savings pot and this goal uses that pot\'s balance, deposit and interest rate. Use each pot for only one goal.',
+  goalGrowth: 'Leave at 0% if the money sits in cash. Use a growth rate only if the money is invested.',
+  needed: 'How much you would need to add each month to reach the target on time, counting any growth.',
+  expected: 'Where you will likely end up by the target date if you keep your current monthly deposit.',
+  counted: 'Months before the one you are reviewing use what you logged (or your budget if you logged nothing). The month you are reviewing and later months use your budget, or your log if that is already higher.',
+  leftOver: 'Money in minus spending minus loan payments. Positive (a surplus) = money to save. Negative (a shortfall) = you spent more than came in.',
+  unassigned: 'Left over minus what you already plan to save and invest. If it turns red, you are planning to save more than you actually have left.',
+  share: 'Of every 100 that came in, how much was left over. Aiming for 20 or more is a strong habit.',
+  efMonths: 'How long you could pay your must-pay bills if your income stopped. Aim for 3 to 6 months.',
+  debtFree: 'When your last loan is paid off, if you keep up your current payments (including any extra).',
+};
+
+/* ---------------- binding & refresh ---------------- */
+let binds = [];
+const bind = (node, fn) => { binds.push({ node, fn }); return node; };
+let pending = false;
+function schedule() { markDirty(); if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; refresh(); }); }
+function refresh() {
+  R = M.compute(S);
+  binds = binds.filter(b => b.node.isConnected);
+  for (const b of binds) b.fn(b.node, R);
+  drawCharts();
+}
+
+/* ---------------- inputs ---------------- */
+function input(col, row, path) {
+  const v = row[col.key];
+  const common = { class: 'in' + (col.wide ? ' w-wide' : ''), 'aria-label': col.label, 'data-path': path, placeholder: col.placeholder || '' };
+  let node;
+  if (col.type === 'select') {
+    node = el('select', common);
+    const fill = () => {
+      const opts = typeof col.options === 'function' ? col.options(R) : col.options;
+      const list = [...(col.allowEmpty ? [''] : []), ...opts];
+      let curV = row[col.key] ?? '';
+      if (curV === '' && !col.allowEmpty && opts.length) { curV = opts[0]; row[col.key] = curV; schedule(); }
+      if (curV && !list.includes(curV)) list.push(curV);
+      const sig = list.join('\u0001');
+      if (node.dataset.sig === sig) { node.value = curV; return; }
+      node.dataset.sig = sig;
+      node.innerHTML = list.map(o => `<option value="${esc(o)}">${o === '' ? esc(col.emptyLabel || '—') : esc(o)}</option>`).join('');
+      node.value = curV;
+    };
+    fill();
+    if (typeof col.options === 'function') bind(node, fill);
+    node.addEventListener('change', () => { row[col.key] = node.value; schedule(); });
+  } else if (col.type === 'pct') {
+    const inp = el('input', { ...common, type: 'number', step: 'any', inputmode: 'decimal', value: v === '' || v == null ? '' : +(v * 100).toFixed(4) });
+    inp.addEventListener('input', () => { row[col.key] = inp.value === '' ? '' : +inp.value / 100; schedule(); });
+    node = el('span', { class: 'pct' }); node.appendChild(inp);
+    if (col.disabled) bind(inp, n => { n.disabled = col.disabled(row); });
+    return node;
+  } else {
+    const type = col.type === 'money' || col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : col.type === 'month' ? 'month' : 'text';
+    node = el('input', { ...common, type, step: type === 'number' ? 'any' : undefined, inputmode: type === 'number' ? 'decimal' : undefined, min: col.min, value: v ?? '' });
+    node.addEventListener('input', () => {
+      if (type === 'number') { if (node.value === '' ) row[col.key] = ''; else if (isFinite(+node.value)) row[col.key] = +node.value; }
+      else row[col.key] = node.value;
+      schedule();
+    });
+  }
+  if (col.disabled) bind(node, n => { n.disabled = col.disabled(row); });
+  return node;
+}
+
+/* ---------------- editable table ---------------- */
+function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, onStructure, readOnly, emptyText, addFirst }) {
+  const wrap = el('div');
+  const tw = el('div', { class: 'tbl-wrap' });
+  const t = el('table', { class: 'ed' });
+  const thead = el('thead');
+  thead.innerHTML = `<tr>${cols.map(c => `<th class="${c.r ? 'r' : ''}" scope="col">${esc(c.label)} ${c.tip ? TIP(c.tip) : ''}</th>`).join('')}${readOnly ? '' : '<th aria-label="Remove"></th>'}</tr>`;
+  t.appendChild(thead);
+  const tb = el('tbody');
+  rows.forEach((row, i) => {
+    const tr = el('tr');
+    cols.forEach((c, ci) => {
+      const td = el('td', { 'data-label': c.label, class: [c.calc ? 'c' : '', c.r ? 'r' : '', c.span ? 'span' : '', ci === 0 ? 'first' : ''].join(' ').trim() });
+      if (c.calc) bind(td, (n, R) => { n.innerHTML = c.calc(row, i, R) ?? ''; });
+      else td.appendChild(input(c, row, `${name}.${i}.${c.key}`));
+      tr.appendChild(td);
+    });
+    if (!readOnly) {
+      const td = el('td', { class: 'act' });
+      td.appendChild(el('button', { type: 'button', class: 'del', 'aria-label': 'Remove this row', title: 'Remove this row', onclick: () => { rows.splice(i, 1); onStructure(); } }, '×'));
+      tr.appendChild(td);
+    }
+    if (rowClass) bind(tr, (n, R) => { n.className = rowClass(row, i, R) || ''; });
+    if (filter) bind(tr, (n, R) => { n.hidden = !filter(row, i, R); });
+    tb.appendChild(tr);
+  });
+  if (totals) {
+    const tr = el('tr', { class: 'total' });
+    cols.forEach((c, ci) => {
+      const td = el('td', { 'data-label': c.label, class: [c.r ? 'r' : '', ci === 0 ? 'first' : ''].join(' ') });
+      const f = totals[c.key];
+      if (ci === 0 && !f) td.textContent = 'Total';
+      else if (f) bind(td, (n, R) => { n.innerHTML = f(R) ?? ''; });
+      else td.setAttribute('data-label', '');
+      tr.appendChild(td);
+    });
+    if (!readOnly) tr.appendChild(el('td', { class: 'act' }));
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb); tw.appendChild(t); wrap.appendChild(tw);
+  if (!rows.length && emptyText) wrap.insertBefore(el('p', { class: 'empty' }, esc(emptyText)), tw);
+  if (!readOnly && blank) {
+    const act = el('div', { class: 'tbl-actions' });
+    act.appendChild(el('button', { type: 'button', class: 'btn', onclick: () => { const b = blank(); addFirst ? rows.unshift(b) : rows.push(b); onStructure(); setTimeout(() => { const inp = $(`[data-path="${name}.${addFirst ? 0 : rows.length - 1}.${cols.find(c => !c.calc).key}"]`); inp && inp.focus(); }, 30); } }, `+ ${esc(addLabel)}`));
+    wrap.appendChild(act);
+  }
+  return wrap;
+}
+
+/* ---------------- charts (hand-made SVG) ---------------- */
+function scale(min, max, n = 4) {
+  if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+  if (min === max) { max = min + (Math.abs(min) || 1); }
+  const step0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), norm = step0 / mag;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, ticks = [];
+  for (let v = lo; v <= hi + step / 2; v += step) ticks.push(v);
+  return { lo, hi, ticks };
+}
+function lineChart({ labels, series, width, height = 250, zero = false, area = false, marker }) {
+  const pl = 52, pr = 18, pt = 14, pb = 30, w = Math.max(260, width), h = height;
+  const all = series.flatMap(s => s.values.filter(ok));
+  if (!all.length) return '';
+  let min = Math.min(...all), max = Math.max(...all);
+  if (zero) min = Math.min(0, min);
+  const pad = (max - min) * 0.08 || 1; if (!zero) { min -= pad; max += pad; }
+  const sc = scale(min, max);
+  const n = labels.length, X = i => pl + (n <= 1 ? (w - pl - pr) / 2 : i * (w - pl - pr) / (n - 1)), Y = v => pt + (h - pt - pb) * (1 - (v - sc.lo) / (sc.hi - sc.lo));
+  const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((w - pl - pr) / 64))));
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${esc(series.map(x => x.name).join(', '))} chart">`;
+  sc.ticks.forEach(t => { s += `<line class="axis" x1="${pl}" x2="${w - pr}" y1="${Y(t)}" y2="${Y(t)}" stroke-dasharray="${t === 0 ? '' : '2 4'}"/><text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${abbr(t)}</text>`; });
+  labels.forEach((l, i) => { if (i % every === 0 || i === n - 1) s += `<text x="${X(i)}" y="${h - 8}" text-anchor="middle">${esc(l)}</text>`; });
+  if (marker !== undefined && marker >= 0) s += `<line x1="${X(marker)}" x2="${X(marker)}" y1="${pt}" y2="${h - pb}" stroke="#D68910" stroke-width="2" stroke-dasharray="4 4"/>`;
+  series.forEach((ser, si) => {
+    const pts = ser.values.map((v, i) => ok(v) ? [X(i), Y(v)] : null).filter(Boolean);
+    if (!pts.length) return;
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+    if (area && si === 0 && pts.length > 1) s += `<path d="${d}L${pts.at(-1)[0]},${Y(sc.lo)}L${pts[0][0]},${Y(sc.lo)}Z" fill="${ser.color}" opacity=".12"/>`;
+    s += `<path d="${d}" fill="none" stroke="${ser.color}" stroke-width="${ser.thin ? 2 : 3}" stroke-linejoin="round" stroke-linecap="round" ${ser.dash ? 'stroke-dasharray="6 5"' : ''}/>`;
+    if (n <= 40) ser.values.forEach((v, i) => { if (ok(v)) s += `<circle cx="${X(i)}" cy="${Y(v)}" r="${ser.dotBig && i === n - 1 ? 6 : 4}" fill="${ser.dotBig && i === n - 1 ? '#fff' : ser.color}" stroke="${ser.color}" stroke-width="2"><title>${esc(labels[i])}: ${esc(fmt(v))}</title></circle>`; });
+  });
+  return s + '</svg>';
+}
+function barChart({ labels, series, width, height = 250, highlight }) {
+  const pl = 52, pr = 10, pt = 14, pb = 30, w = Math.max(260, width), h = height;
+  const all = series.flatMap(s => s.values);
+  const sc = scale(Math.min(0, ...all), Math.max(0, ...all));
+  const n = labels.length, gw = (w - pl - pr) / n, bw = Math.max(3, Math.min(22, gw * 0.8 / series.length));
+  const Y = v => pt + (h - pt - pb) * (1 - (v - sc.lo) / (sc.hi - sc.lo));
+  let s = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${esc(series.map(x => x.name).join(' and '))} by month">`;
+  if (highlight >= 0) s += `<rect x="${pl + highlight * gw}" y="${pt}" width="${gw}" height="${h - pt - pb}" fill="#FCEBC7" rx="6"/>`;
+  sc.ticks.forEach(t => { s += `<line class="axis" x1="${pl}" x2="${w - pr}" y1="${Y(t)}" y2="${Y(t)}" stroke-dasharray="${t === 0 ? '' : '2 4'}"/><text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${abbr(t)}</text>`; });
+  labels.forEach((l, i) => {
+    const gx = pl + i * gw + (gw - bw * series.length) / 2;
+    series.forEach((ser, si) => { const v = ser.values[i]; const y0 = Y(0), y1 = Y(v); s += `<rect x="${gx + si * bw}" y="${Math.min(y0, y1)}" width="${bw - 1}" height="${Math.max(1, Math.abs(y1 - y0))}" rx="2" fill="${ser.color}"><title>${esc(l)}, ${esc(ser.name)}: ${esc(fmt(v))}</title></rect>`; });
+    const short = gw < 30 ? l.slice(0, 1) : l;
+    s += `<text x="${pl + i * gw + gw / 2}" y="${h - 8}" text-anchor="middle" ${i === highlight ? 'style="font-weight:700;fill:#1F2A27"' : ''}>${esc(short)}</text>`;
+  });
+  return s + '</svg>';
+}
+const PALETTE = ['#14453A', '#2E9E6E', '#2E86C1', '#6A4FC7', '#D68910', '#C0392B', '#8E44AD', '#48A9A6', '#1F618D', '#B7950B', '#A04000', '#7D8F89', '#E08E79', '#5DADE2', '#82C99A', '#F0B85A', '#AF7AC5', '#95A5A6', '#D98880', '#117A65'];
+function pieChart(slices, size = 220) {
+  const tot = slices.reduce((a, s) => a + s.value, 0);
+  if (tot <= 0) return '';
+  const r = size / 2 - 4, c = size / 2;
+  let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="Spending by area">`;
+  slices.forEach(sl => {
+    if (sl.value <= 0) return;
+    const frac = sl.value / tot, a1 = a0 + frac * Math.PI * 2;
+    const title = `<title>${esc(sl.label)}: ${esc(fmt(sl.value))} (${fp(frac)})</title>`;
+    if (frac > 0.9999) s += `<circle cx="${c}" cy="${c}" r="${r}" fill="${sl.color}">${title}</circle>`;
+    else s += `<path d="M${c},${c}L${c + r * Math.cos(a0)},${c + r * Math.sin(a0)}A${r},${r} 0 ${frac > .5 ? 1 : 0} 1 ${c + r * Math.cos(a1)},${c + r * Math.sin(a1)}Z" fill="${sl.color}" stroke="#fff" stroke-width="2">${title}</path>`;
+    a0 = a1;
+  });
+  return s + '</svg>';
+}
+
+const CHARTS = {
+  networth(node, R) {
+    const H = R.networth.history.filter(h => h.net !== null && h.month);
+    const labels = [...H.map(h => fmon(h.month).slice(0, 3)), 'Now'];
+    const vals = [...H.map(h => h.net), R.networth.net];
+    node.innerHTML = H.length || ok(R.networth.net) ? lineChart({ labels, series: [{ name: 'Net worth', color: '#117A65', values: vals, dotBig: true }], width: node.clientWidth, area: true })
+      + `<div class="chart-legend"><span><i style="--lc:#117A65"></i>Recorded months</span><span><i style="--lc:#fff;border:2px solid #117A65"></i>Now: ${fmt(R.networth.net)}</span></div>` : '<p class="empty">Record your first month on the Net Worth tab to start your trend.</p>';
+  },
+  cashflow(node, R) {
+    const cf = R.cashflow.months; const hi = cf.findIndex(c => c.m === R.RM);
+    node.innerHTML = barChart({ labels: cf.map(c => fmon(c.m).slice(0, 3)), series: [{ name: 'Money in', color: '#2E9E6E', values: cf.map(c => c.in) }, { name: 'Money going out', color: '#C0392B', values: cf.map(c => c.outTotal) }], width: node.clientWidth, highlight: hi })
+      + `<div class="chart-legend"><span><i style="--lc:#2E9E6E"></i>Money in</span><span><i style="--lc:#C0392B"></i>Spending + loan payments</span>${hi >= 0 ? '<span><i style="--lc:#FCEBC7"></i>Month you\'re reviewing</span>' : ''}</div>`;
+  },
+  pie(node, R) {
+    const rows = R.expenses.rows.filter(b => b.on && b.chart > 0);
+    const tot = rows.reduce((a, b) => a + b.chart, 0);
+    if (!tot) { node.innerHTML = '<p class="empty">Add a budget on the Expenses tab to see where your money goes.</p>'; return; }
+    const slices = rows.map((b, i) => ({ label: b.name, value: b.chart, color: PALETTE[i % PALETTE.length] })).sort((a, b) => b.value - a.value);
+    const size = Math.min(220, Math.max(160, node.clientWidth > 520 ? 220 : node.clientWidth * .6));
+    node.innerHTML = `<div class="pie-wrap"><div style="display:grid;place-items:center">${pieChart(slices, size)}</div><div class="pie-legend">${slices.map(s => `<div><i style="--lc:${s.color}"></i><span>${esc(s.label)}</span><span class="num">${fm(s.value)}</span><span class="p num">${fp(s.value / tot)}</span></div>`).join('')}</div></div>`;
+  },
+  loan(node, R) {
+    const sc = R.loans.schedule;
+    if (!sc.length) { node.innerHTML = '<p class="empty">Pick a loan with an amount, rate, length and first payment date.</p>'; return; }
+    const sel = R.loans.selected; const n = sel.n;
+    const labels = [], withX = [], noX = [];
+    const step = Math.max(1, Math.ceil(Math.min(n, 360) / 60));
+    for (let k = 0; k <= Math.min(n, 360); k += step) {
+      labels.push(fmon(M.edate(sel.first, Math.max(0, k - 1))).slice(4));
+      withX.push(k === 0 ? sel.A : (sc[k - 1] ? sc[k - 1].after : 0));
+      noX.push(k === 0 ? sel.A : Math.max(0, -M.FV(sel.rate / 12, k, -sel.pmt, sel.A)));
+    }
+    const mk = Math.round(Math.max(0, M.mdiff(R.RM, sel.first) + 1) / step);
+    node.innerHTML = lineChart({ labels, series: [{ name: 'With extra', color: '#6A4FC7', values: withX, thin: true }, { name: 'No extra', color: '#9AA7A2', values: noX, dash: true, thin: true }], width: node.clientWidth, zero: true, marker: mk <= labels.length - 1 ? mk : undefined })
+      + `<div class="chart-legend"><span><i style="--lc:#6A4FC7"></i>Still owed, paying your extra</span><span><i style="--lc:#9AA7A2"></i>Still owed with no extra</span><span><i style="--lc:#D68910"></i>Today</span></div>`;
+  },
+  invest(node, R) {
+    const P = R.investments.projection.filter(p => p.y > 0).sort((a, b) => a.y - b.y);
+    if (!P.length) { node.innerHTML = ''; return; }
+    const labels = ['Now', ...P.map(p => `${p.y}y`)], v0 = R.investments.totValue;
+    const cols = ['#9AA7A2', '#6A4FC7', '#2E9E6E', '#D68910'];
+    const names = ['Money you put in', 'Cautious growth', 'Middle growth', 'Hopeful growth'];
+    const series = [{ name: names[0], color: cols[0], values: [v0, ...P.map(p => p.putIn)], dash: true, thin: true },
+      ...[0, 1, 2].map(j => ({ name: names[j + 1], color: cols[j + 1], values: [v0, ...P.map(p => p.vals[j])], thin: true }))];
+    node.innerHTML = lineChart({ labels, series, width: node.clientWidth, zero: true }) + `<div class="chart-legend">${series.map(s => `<span><i style="--lc:${s.color}"></i>${s.name}</span>`).join('')}</div>`;
+  },
+};
+function drawCharts() {
+  $$(`#panel-${UI.tab} [data-chart]`).forEach(n => CHARTS[n.dataset.chart](n, R));
+}
+
+/* ---------------- goal progress list (dashboard + goals) ---------------- */
+function goalList(node, R) {
+  const ef = R.savings.ef;
+  const items = [`<div class="progress-item"><div class="top-line"><span class="name">Emergency fund (${esc(M.num(S.settings.efMonths))} months of costs)</span><span class="num">${fp(ef.progress)}</span></div>${barHTML(ef.progress, '#2E86C1')}<div class="meta">${fm(ef.saved)} of ${fm(ef.target)} ${cur()} ${pill(ef.status)}</div></div>`];
+  R.goals.rows.filter(g => g.on).forEach(g => {
+    const color = g.status === 'Needs a boost' || g.status === 'Date has passed' ? '#C0392B' : '#8E44AD';
+    items.push(`<div class="progress-item"><div class="top-line"><span class="name">${esc(g.name)}</span><span class="num">${fp(g.progress)}</span></div>${barHTML(g.progress, color)}<div class="meta">${fm(g.saved)} of ${fm(g.target)} ${cur()} ${pill(g.status)} ${g.next && g.status !== 'On track' ? esc(g.next) : ''}</div></div>`);
+  });
+  node.innerHTML = items.join('');
+}
+
+/* ---------------- panels ---------------- */
+const PANELS = [
+  ['dashboard', 'Dashboard'], ['income', 'Income'], ['expenses', 'Expenses'], ['loans', 'Loans'], ['savings', 'Savings'],
+  ['investments', 'Investments'], ['networth', 'Net Worth'], ['goals', 'Goals'], ['cashflow', 'Cash Flow'],
+];
+function head(title, text) { return `<div class="page-head"><h1>${title}</h1><p>${text}</p></div>`; }
+function fig(label, fn, tip) { const d = el('div', { class: 'fig' }, `<div class="lab">${label} ${tip ? TIP(tip) : ''}</div><div class="val num"></div>`); bind($('.val', d), fn); return d; }
+function figs(...items) { const d = el('div', { class: 'figs' }); items.forEach(i => d.appendChild(i)); return d; }
+const rerender = id => () => { render(id); markDirty(); refresh(); };
+
+const RENDER = {
+  dashboard(p) {
+    p.innerHTML = `
+      <section class="hero">
+        <p class="when" data-b="when"></p>
+        <p class="hero-line" data-b="line"></p>
+        <div class="flow">
+          <div class="flow-label"><span data-b="flowtitle"></span><span data-b="flownote"></span></div>
+          <div class="strip" data-b="strip" role="img"></div>
+          <div class="flow-keys" data-b="keys"></div>
+        </div>
+      </section>
+      <div class="stats" data-b="stats"></div>
+      <div class="grid2 block">
+        <div class="box"><h3>Your net worth over time ${TIP(T.netWorth)}</h3><div class="chart" data-chart="networth"></div></div>
+        <div class="box"><h3>Where your money goes</h3><p class="sub small" data-b="piesub"></p><div class="chart" data-chart="pie"></div></div>
+        <div class="box"><h3>Money in vs money going out</h3><p class="sub small">Each month of your plan year.</p><div class="chart" data-chart="cashflow"></div></div>
+        <div class="box"><h3>Goal progress</h3><div class="progress-list" data-b="goals"></div></div>
+      </div>
+      <div class="box block"><h3>Budget check <span class="muted small" data-b="budgetmonth"></span></h3><div class="progress-list two" data-b="budget"></div></div>`;
+    const B = k => $(`[data-b="${k}"]`, p);
+    bind(B('when'), (n, R) => { n.textContent = R.dashboard.inPlanYear ? `Your numbers for ${fmon(R.RM, true)}` : `${fmon(R.RM, true)} is outside your plan year, so these are typical monthly figures.`; });
+    bind(B('line'), (n, R) => {
+      const D = R.dashboard, out = D.spending + D.loanPay, m = MONTHS[+R.RM.slice(5, 7) - 1];
+      n.innerHTML = D.left >= 0
+        ? `In ${m}, <b class="num">${fmt(D.moneyIn)}</b> came in. After spending and loan payments you have <b class="num">${fmt(D.left)}</b> left over.`
+        : `In ${m}, <b class="num">${fmt(D.moneyIn)}</b> came in, but spending and loan payments came to <b class="num neg">${fmt(out)}</b>. That's <b class="num neg">${fmt(-D.left)}</b> more than you earned.`;
+    });
+    bind(B('flowtitle'), (n) => { n.innerHTML = `Where every 100 ${cur()} that came in goes ${TIP(T.unassigned)}`; });
+    bind(B('flownote'), (n, R) => {
+      const D = R.dashboard;
+      n.innerHTML = D.left < 0 ? `<span class="neg">Short by ${fmt(-D.left)} before any saving</span>` : D.unassigned < 0 ? `<span class="warn">You planned to save ${fmt(-D.unassigned)} more than you had left</span>` : `${fmt(D.unassigned)} doesn't have a job yet. Give it one.`;
+    });
+    bind(B('strip'), (n, R) => {
+      const D = R.dashboard;
+      const parts = [['Spending', D.spending, '#C0392B'], ['Loan payments', D.loanPay, '#6A4FC7'], ['Savings', D.sav, '#2E86C1'], ['Investing', D.inv, '#D68910']];
+      const free = D.moneyIn - parts.reduce((a, x) => a + x[1], 0);
+      const total = Math.max(D.moneyIn, parts.reduce((a, x) => a + x[1], 0)) || 1;
+      n.innerHTML = parts.map(([l, v, c]) => `<div style="flex-basis:${v / total * 100}%;background:${c}" title="${esc(l)}: ${esc(fmt(v))}"></div>`).join('')
+        + (free > 0 ? `<div class="free" style="flex-basis:${free / total * 100}%" title="Not planned yet: ${esc(fmt(free))}"></div>` : '');
+      n.setAttribute('aria-label', parts.map(([l, v]) => `${l} ${fmt(v)}`).join(', ') + (free > 0 ? `, not planned yet ${fmt(free)}` : `, short by ${fmt(-free)}`));
+      const keys = [...parts, free >= 0 ? ['Not planned yet', free, '#9CC5B3'] : ['Short by', -free, '#E08E79']];
+      B('keys').innerHTML = keys.map(([l, v, c]) => `<div style="--k:${c}"><div class="k-name">${esc(l)}</div><div class="k-val num">${fm(v)}</div><div class="k-per">${D.moneyIn > 0 ? `${Math.round(v / D.moneyIn * 100)} of every 100` : ''}</div></div>`).join('');
+    });
+    bind(B('stats'), (n, R) => {
+      const D = R.dashboard, N = R.networth;
+      const efc = D.efMonths < 3 ? 'neg' : D.efMonths < 6 ? 'warn' : 'pos';
+      const st = [
+        ['Net worth', fmc(D.netWorth), T.netWorth, ok(N.change) ? `<span class="${signCls(N.change)}">${N.change >= 0 ? '+' : ''}${fm(N.change)}</span> since your last recorded month` : ''],
+        ['Share of income left over', `<span class="${D.share < 0 ? 'neg' : D.share >= .2 ? 'pos' : 'warn'}">${fp(D.share)}</span>`, T.share, 'Aim for 20% or more'],
+        ['Emergency fund covers', `<span class="${efc}">${D.efMonths.toFixed(1)}</span><small>months</small>`, T.efMonths, 'Aim for 3 to 6 months'],
+        ['Budget areas over the limit', `<span class="${D.overBudget ? 'neg' : 'pos'}">${D.overBudget}</span>`, T.pctUsed, D.overBudget ? 'See the Expenses tab' : 'All within budget'],
+        ['Total savings', fmc(D.savings), null, 'Everything in your savings pots'],
+        ['Total investments', fmc(D.investments), null, 'What they are worth today'],
+        ['Total debt still owed', fmc(D.debt), T.owed, 'Loans, cards and other money you owe'],
+        ['Debt-free by', D.debtFree ? fmon(D.debtFree, true) : '–', T.debtFree, `Goals on track: ${D.goalsText}`],
+      ];
+      n.innerHTML = st.map(([l, v, t, note]) => `<div class="stat"><div class="lab">${l} ${t ? TIP(t) : ''}</div><div class="val num">${v}</div><div class="note">${note}</div></div>`).join('');
+    });
+    bind(B('piesub'), (n, R) => { n.textContent = R.expenses.totSpent > 0 ? `What you've logged in ${fmon(R.RM, true)}.` : `Nothing logged for ${fmon(R.RM, true)} yet, so this shows your budget.`; });
+    bind(B('goals'), goalList);
+    bind(B('budgetmonth'), (n, R) => { n.textContent = fmon(R.RM, true); });
+    bind(B('budget'), (n, R) => {
+      const rows = R.expenses.rows.filter(b => b.on);
+      n.innerHTML = rows.length ? rows.map(b => {
+        const over = b.status === 'Over budget', color = over ? '#C0392B' : b.status === 'Close to limit' ? '#D68910' : '#2E9E6E';
+        return `<div class="progress-item"><div class="top-line"><span class="name">${esc(b.name)}</span><span class="num">${fm0(b.spent)} of ${fm0(b.budget)}</span></div>${barHTML(b.pct, color)}<div class="meta">${ok(b.left) ? (b.left < -0.5 ? `<span class="neg">${fm(-b.left)} over budget</span>` : b.left < 0.5 ? 'Budget fully used' : `${fm(b.left)} left to spend`) : ''} ${pill(b.status)}</div></div>`;
+      }).join('') : '<p class="empty">Add spending areas on the Expenses tab.</p>';
+    });
+  },
+
+  income(p) {
+    p.innerHTML = head('Income', 'Every source of money coming in: salary, allowances, side jobs, rent you receive, bonuses.');
+    p.appendChild(figs(
+      fig('Typical monthly income', (n, R) => n.innerHTML = fmc(R.income.typicalMonthly), T.typical),
+      fig('One-time money this plan year', (n, R) => n.innerHTML = fmc(R.income.oneTimeYear)),
+      fig('Money in this month', (n, R) => n.innerHTML = fmc(R.dashboard.moneyIn)),
+    ));
+    const kinds = ['Salary / wages', 'Allowance', 'Side income', 'Business', 'Rental income', 'Investment income', 'Government support', 'Gift / family', 'Other'];
+    p.appendChild(table({
+      rows: S.income, name: 'income', onStructure: rerender('income'), addLabel: 'Add income', emptyText: 'No income yet. Add your salary or any money you receive.',
+      blank: () => ({ name: '', kind: 'Salary / wages', freq: 'Monthly', amount: '', start: '', end: '', note: '' }),
+      cols: [
+        { key: 'name', label: 'Where the money comes from', wide: true, placeholder: 'e.g. Main job', span: true },
+        { key: 'kind', label: 'Kind of income', type: 'select', options: kinds },
+        { key: 'freq', label: 'How often', type: 'select', options: ['Monthly', 'Every 2 weeks', 'Weekly', 'Yearly', 'One-time'], tip: T.freq },
+        { key: 'amount', label: 'Amount each time', type: 'money', min: 0 },
+        { key: 'start', label: 'Start date (or date received)', type: 'date' },
+        { key: 'end', label: 'End date (empty if ongoing)', type: 'date' },
+        { key: 'typ', label: 'Typical monthly amount', calc: (r, i, R) => fm(R.income.rows[i]?.monthly), r: true, tip: T.typical },
+        { key: 'note', label: 'Notes', wide: true, span: true },
+      ],
+      totals: { typ: R => fm(R.income.typicalMonthly) },
+    }));
+    const box = el('div', { class: 'box block' }, '<h3>Typical monthly income by kind</h3><div class="progress-list"></div>');
+    bind($('.progress-list', box), (n, R) => {
+      const e = Object.entries(R.income.byKind).filter(([, v]) => v > 0), tot = R.income.typicalMonthly;
+      n.innerHTML = e.length ? e.map(([k, v]) => `<div class="progress-item"><div class="top-line"><span class="name">${esc(k)}</span><span class="num">${fm(v)} ${cur()}</span></div>${barHTML(tot ? v / tot : 0, '#2E8B57')}</div>`).join('') : '<p class="empty">Regular income will show here.</p>';
+    });
+    p.appendChild(box);
+  },
+
+  expenses(p) {
+    p.innerHTML = head('Expenses', 'Plan how much to spend in each area, then log what you actually spend. Loan and mortgage payments belong on the Loans tab, not here.');
+    p.appendChild(figs(
+      fig('Monthly budget', (n, R) => n.innerHTML = fmc(R.expenses.totBudget), T.budget),
+      fig('Spent this month', (n, R) => n.innerHTML = fmc(R.expenses.totSpent)),
+      fig('Left to spend', (n, R) => n.innerHTML = `<span class="${R.expenses.totLeft < 0 ? 'neg' : ''}">${fm(R.expenses.totLeft)}</span><small> ${cur()}</small>`),
+      fig('Areas over budget', (n, R) => n.innerHTML = `<span class="${R.expenses.overCount ? 'neg' : 'pos'}">${R.expenses.overCount}</span>`, T.pctUsed),
+    ));
+    const h = el('div', {}, '<h2>Your monthly budget</h2><p class="sub" data-b="m"></p>');
+    bind($('[data-b="m"]', h), (n, R) => n.textContent = `"Spent this month" shows ${fmon(R.RM, true)}. Change the month at the top of the page.`);
+    p.appendChild(h);
+    p.appendChild(table({
+      rows: S.budget, name: 'budget', onStructure: rerender('expenses'), addLabel: 'Add spending area',
+      blank: () => ({ name: '', type: 'Variable', budget: '' }),
+      cols: [
+        { key: 'name', label: 'Spending area', wide: true, placeholder: 'e.g. Groceries', span: true },
+        { key: 'type', label: 'Fixed or variable?', type: 'select', options: ['Fixed', 'Variable'], tip: T.fixed },
+        { key: 'budget', label: 'Monthly budget', type: 'money', min: 0, tip: T.budget },
+        { key: 'spent', label: 'Spent this month', calc: (r, i, R) => fm(R.expenses.rows[i]?.spent), r: true },
+        { key: 'left', label: 'Left to spend', calc: (r, i, R) => { const v = R.expenses.rows[i]?.left; return ok(v) ? `<span class="${v < 0 ? 'neg' : ''}">${fm(v)}</span>` : ''; }, r: true },
+        { key: 'pct', label: '% of budget used', tip: T.pctUsed, calc: (r, i, R) => { const b = R.expenses.rows[i]; if (!b || !ok(b.pct)) return ''; const c = b.status === 'Over budget' ? '#C0392B' : b.status === 'Close to limit' ? '#D68910' : '#2E9E6E'; return `<div style="display:flex;gap:8px;align-items:center"><span class="num" style="min-width:42px">${fp(b.pct)}</span>${barHTML(b.pct, c)}</div>`; } },
+        { key: 'status', label: 'Status', calc: (r, i, R) => pill(R.expenses.rows[i]?.status) },
+      ],
+      totals: { budget: R => fm(R.expenses.totBudget), spent: R => fm(R.expenses.totSpent), left: R => `<span class="${R.expenses.totLeft < 0 ? 'neg' : ''}">${fm(R.expenses.totLeft)}</span>`, pct: R => fp(R.expenses.totPct), status: R => pill(R.expenses.totStatus) },
+    }));
+    const fv = el('div', { class: 'box block' }, `<h3>Fixed vs variable ${TIP(T.fixed)}</h3><div class="kv" data-b="kv"></div>`);
+    bind($('[data-b="kv"]', fv), (n, R) => { const E = R.expenses; n.innerHTML = `<div>Fixed costs: budget</div><div class="num">${fm(E.fixedBudget)}</div><div>Fixed costs: spent this month</div><div class="num">${fm(E.fixedSpent)}</div><div>Variable costs: budget</div><div class="num">${fm(E.varBudget)}</div><div>Variable costs: spent this month</div><div class="num">${fm(E.varSpent)}</div>`; });
+    p.appendChild(fv);
+
+    const lh = el('div', { class: 'block' }, `<h2>Spending log</h2><p class="sub">Write down what you spend. Each entry is added to its spending area for that month.</p>`);
+    const seg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Which entries to show' });
+    [['month', 'This month only'], ['all', 'All entries']].forEach(([k, l]) => seg.appendChild(el('button', { type: 'button', 'aria-pressed': String(UI.logFilter === k), onclick: (e) => { UI.logFilter = k; const t = e.currentTarget; $$('button', seg).forEach(b => b.setAttribute('aria-pressed', String(b === t))); refresh(); } }, l)));
+    lh.appendChild(seg);
+    p.appendChild(lh);
+    const logWrap = table({
+      rows: S.log, name: 'log', onStructure: rerender('expenses'), addLabel: 'Add spending', addFirst: true,
+      blank: () => { const now = new Date(); const t = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; return { date: R.RM.slice(0, 7) === t ? `${t}-${String(now.getDate()).padStart(2, '0')}` : R.RM, area: '', what: '', amount: '' }; },
+      filter: (r, i, R) => UI.logFilter === 'all' || !r.date || r.date.slice(0, 7) === R.RM.slice(0, 7),
+      cols: [
+        { key: 'date', label: 'Date', type: 'date' },
+        { key: 'area', label: 'Spending area', type: 'select', allowEmpty: true, emptyLabel: 'Pick an area', options: R => S.budget.map(b => b.name).filter(Boolean) },
+        { key: 'what', label: 'What was it?', wide: true, span: true, placeholder: 'e.g. Weekly shop' },
+        { key: 'amount', label: 'Amount', type: 'money', min: 0 },
+        { key: 'type', label: 'Fixed or variable', calc: (r, i, R) => { const t = R.expenses.logType[i]; return t === 'Not in budget' ? pill(t) : esc(t); } },
+      ],
+    });
+    logWrap.style.marginTop = '12px';
+    p.appendChild(logWrap);
+  },
+
+  loans(p) {
+    p.innerHTML = head('Loans and mortgage', "Everything you're paying back. See your payoff date, and how much paying a little extra saves you.");
+    p.appendChild(figs(
+      fig('Loan payments each month', (n, R) => n.innerHTML = fmc(R.loans.totMonthly), T.required),
+      fig('Still owed', (n, R) => n.innerHTML = fmc(R.loans.totOwed), T.owed),
+      fig('Debt-free by', (n, R) => n.textContent = R.loans.debtFree ? fmon(R.loans.debtFree, true) : '–', T.debtFree),
+      fig('Interest saved by paying extra', (n, R) => n.innerHTML = `<span class="${R.loans.totSaved > 0 ? 'pos' : ''}">${fm(R.loans.totSaved)}</span><small> ${cur()}</small>`, T.interest),
+    ));
+    const L = (i, R) => R.loans.rows[i] || {};
+    const need = (i, R, f) => { const l = L(i, R); if (l.valid && !l.ok) return '<span class="neg small">Check the numbers</span>'; return l.ok ? f(l) : ''; };
+    p.appendChild(table({
+      rows: S.loans, name: 'loans', onStructure: rerender('loans'), addLabel: 'Add loan', emptyText: 'No loans. Nice! Add one here if you have a mortgage, car loan or other debt.',
+      blank: () => ({ name: '', kind: 'Personal loan', amount: '', rate: '', years: '', first: '', extra: '' }),
+      cols: [
+        { key: 'name', label: 'Loan name', wide: true, span: true, placeholder: 'e.g. Car loan' },
+        { key: 'kind', label: 'Kind of loan', type: 'select', options: ['Mortgage', 'Car loan', 'Personal loan', 'Student loan', 'Credit card', 'Other'] },
+        { key: 'amount', label: 'Amount borrowed', type: 'money', min: 0 },
+        { key: 'rate', label: 'Yearly interest rate', type: 'pct', tip: T.rate },
+        { key: 'years', label: 'Loan length (years)', type: 'number', min: 0 },
+        { key: 'first', label: 'First payment date', type: 'date' },
+        { key: 'extra', label: 'Extra you pay each month', type: 'money', min: 0, tip: T.extra },
+        { key: 'pmt', label: 'Required monthly payment', r: true, tip: T.required, calc: (r, i, R) => need(i, R, l => fm(l.pmt)) },
+        { key: 'tot', label: 'Total you pay each month', r: true, calc: (r, i, R) => need(i, R, l => `<b>${fm(l.total)}</b>`) },
+        { key: 'owed', label: 'Still owed today', r: true, tip: T.owed, calc: (r, i, R) => need(i, R, l => l.owed === null ? '<span class="muted small">Add first payment date</span>' : l.owed === 0 ? pill('Reached') : fm(l.owed)) },
+        { key: 'px', label: 'Paid off by (with extra)', calc: (r, i, R) => need(i, R, l => fmon(l.payoffExtra)) },
+        { key: 'pn', label: 'Paid off by (no extra)', calc: (r, i, R) => need(i, R, l => fmon(l.payoffNoExtra)) },
+        { key: 'soon', label: 'Months sooner', r: true, calc: (r, i, R) => need(i, R, l => l.sooner > 0 ? `<span class="pos">${l.sooner}</span>` : '0') },
+        { key: 'in', label: 'Total interest (no extra)', r: true, tip: T.interest, calc: (r, i, R) => need(i, R, l => fm(l.intNo)) },
+        { key: 'iw', label: 'Total interest (with extra)', r: true, calc: (r, i, R) => need(i, R, l => fm(l.intWith)) },
+        { key: 'is', label: 'Interest you save', r: true, calc: (r, i, R) => need(i, R, l => l.saved > 0 ? `<b class="pos">${fm(l.saved)}</b>` : fm(l.saved)) },
+      ],
+      totals: { amount: R => fm(R.loans.totBorrowed), tot: R => fm(R.loans.totMonthly), owed: R => fm(R.loans.totOwed), is: R => fm(R.loans.totSaved) },
+    }));
+
+    const sec = el('div', { class: 'block' }, `<h2>What paying extra does</h2><p class="sub">Pick a loan and try different extra amounts. The whole plan updates as you go.</p>`);
+    const pick = el('div', { class: 'box' });
+    const selRow = el('label', { class: 'small', style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, '<span>Loan to look at</span>');
+    const sel = input({ key: 'scheduleLoan', label: 'Loan to look at', type: 'select', options: () => S.loans.map(l => l.name).filter(Boolean) }, S.settings, 'settings.scheduleLoan');
+    sel.style.maxWidth = '280px';
+    selRow.appendChild(sel); pick.appendChild(selRow);
+    const call = el('p', { class: 'callout', style: '--cc:var(--c-loans);margin-top:14px' });
+    bind(call, (n, R) => {
+      const l = R.loans.selected;
+      if (!l || !l.first) { n.innerHTML = 'Choose a loan that has an amount, rate, length and first payment date.'; return; }
+      n.innerHTML = l.E > 0
+        ? `Paying <b>${fmt(l.E)}</b> extra each month on ${esc(l.name)} finishes it <b>${l.sooner} months sooner</b> (${fmon(l.payoffExtra, true)} instead of ${fmon(l.payoffNoExtra, true)}) and saves <b class="pos">${fmt(l.saved)}</b> in interest.`
+        : `You're paying the required <b>${fmt(l.pmt)}</b> a month, so ${esc(l.name)} is paid off in <b>${fmon(l.payoffNoExtra, true)}</b>, with <b>${fmt(l.intNo)}</b> of interest in total. Try an extra amount below.`;
+    });
+    pick.appendChild(call);
+    const sl = el('div', { class: 'slider' }, '<label class="small" for="extraRange">Try an extra monthly amount: <b class="num" data-b="v"></b></label>');
+    const range = el('input', { type: 'range', id: 'extraRange', min: 0, step: 50 });
+    sl.appendChild(range); pick.appendChild(sl);
+    bind(sl, (n, R) => {
+      const l = R.loans.selected; n.hidden = !l || !l.first;
+      if (!l) return;
+      range.max = Math.max(1000, Math.ceil(l.pmt / 100) * 100);
+      if (document.activeElement !== range) range.value = l.E;
+      $('[data-b="v"]', n).textContent = fmt(l.E) || `0 ${S.settings.currency}`;
+    });
+    range.addEventListener('input', () => {
+      const idx = S.loans.findIndex(l => l.name === S.settings.scheduleLoan);
+      if (idx < 0) return;
+      S.loans[idx].extra = +range.value || '';
+      const tin = $(`[data-path="loans.${idx}.extra"]`); if (tin) tin.value = S.loans[idx].extra;
+      schedule();
+    });
+    const ch = el('div', { style: 'margin-top:18px' }, '<h3>What you owe over time</h3><div class="chart" data-chart="loan"></div>');
+    pick.appendChild(ch);
+    sec.appendChild(pick);
+
+    const det = el('details', { class: 'block sched' }, '<summary class="btn" style="display:inline-block">Show every payment</summary><p class="sub small" style="margin-top:12px">The row for the month you\'re reviewing is highlighted. The green row is your final payment.</p>');
+    const tw = el('div', { class: 'tbl-wrap', style: 'max-height:520px;overflow:auto' });
+    const tbl = el('table', { class: 'ed' });
+    tbl.innerHTML = `<thead><tr><th>Payment #</th><th>Date</th><th class="r">Owed before payment</th><th class="r">Required payment</th><th class="r">Extra payment</th><th class="r">Goes to interest ${TIP("The lender's fee for this month. Early in a loan most of your payment goes here.")}</th><th class="r">Goes to the loan itself ${TIP('The part of your payment that actually reduces what you owe. It grows each month.')}</th><th class="r">Owed after payment</th><th class="r">Owed if you paid no extra</th></tr></thead><tbody></tbody>`;
+    const tbody = $('tbody', tbl);
+    let lastSig = '';
+    bind(det, (n, R) => {
+      if (!n.open) { lastSig = ''; return; }
+      const sc = R.loans.schedule, sig = JSON.stringify([sc.length, sc.at(-1)?.after, sc[0]?.req, sc[0]?.extra, R.RM]);
+      if (sig === lastSig) return; lastSig = sig;
+      const lab = ['Payment #', 'Date', 'Owed before payment', 'Required payment', 'Extra payment', 'Goes to interest', 'Goes to the loan itself', 'Owed after payment', 'Owed if you paid no extra'];
+      tbody.innerHTML = sc.map((s, i) => `<tr class="${s.date.slice(0, 7) === R.RM.slice(0, 7) ? 'hl' : i === sc.length - 1 ? 'done' : ''}">${[s.k, fmon(s.date), fm2(s.before), fm2(s.req), fm2(s.extra), fm2(s.interest), fm2(s.principal), fm2(s.after), fm2(s.noExtra)].map((v, j) => `<td class="${j > 1 ? 'r ' : ''}c num" data-label="${lab[j]}">${v}</td>`).join('')}</tr>`).join('');
+    });
+    det.addEventListener('toggle', () => refresh());
+    tw.appendChild(tbl); det.appendChild(tw); sec.appendChild(det);
+    p.appendChild(sec);
+  },
+
+  savings(p) {
+    p.innerHTML = head('Savings', 'Money set aside in separate pots. Start with an emergency fund: your safety net if income stops or something breaks.');
+    p.appendChild(figs(
+      fig('Total saved', (n, R) => n.innerHTML = fmc(R.savings.totBal)),
+      fig('Monthly deposits', (n, R) => n.innerHTML = fmc(R.savings.totDep)),
+      fig('In 12 months if you keep going', (n, R) => n.innerHTML = fmc(R.savings.tot12), T.in12),
+    ));
+    p.appendChild(table({
+      rows: S.pots, name: 'pots', onStructure: rerender('savings'), addLabel: 'Add savings pot', emptyText: 'No savings pots yet. Start with an emergency fund.',
+      blank: () => ({ name: '', purpose: '', balance: '', deposit: '', rate: '' }),
+      cols: [
+        { key: 'name', label: 'Savings pot', wide: true, span: true, placeholder: 'e.g. Emergency fund' },
+        { key: 'purpose', label: "What it's for", wide: true, span: true },
+        { key: 'balance', label: 'Balance right now', type: 'money' },
+        { key: 'deposit', label: 'Monthly deposit', type: 'money', min: 0 },
+        { key: 'rate', label: 'Yearly interest or profit rate', type: 'pct', tip: T.savRate },
+        { key: 'in12', label: 'Balance in 12 months', r: true, tip: T.in12, calc: (r, i, R) => fm(R.savings.rows[i]?.in12) },
+        { key: 'share', label: 'Share of all savings', r: true, calc: (r, i, R) => fp(R.savings.rows[i]?.share) },
+      ],
+      totals: { balance: R => fm(R.savings.totBal), deposit: R => fm(R.savings.totDep), in12: R => fm(R.savings.tot12) },
+    }));
+    const box = el('div', { class: 'grid2 block' });
+    const left = el('div', { class: 'box' }, `<h3>Emergency fund check ${TIP(T.ef)}</h3>`);
+    const f1 = el('label', { class: 'small', style: 'display:grid;gap:4px;margin-bottom:10px' }, '<span>Which pot is your emergency fund?</span>');
+    f1.appendChild(input({ key: 'efPot', label: 'Emergency fund pot', type: 'select', allowEmpty: true, emptyLabel: 'Pick a pot', options: () => S.pots.map(x => x.name).filter(Boolean) }, S.settings, 'settings.efPot'));
+    const f2 = el('label', { class: 'small', style: 'display:grid;gap:4px;margin-bottom:14px' }, '<span>Months of costs you want covered (most people aim for 3 to 6; choose 6 if your income is irregular)</span>');
+    f2.appendChild(input({ key: 'efMonths', label: 'Months of costs', type: 'number', min: 0 }, S.settings, 'settings.efMonths'));
+    left.append(f1, f2);
+    const kv = el('div', { class: 'kv' }); left.appendChild(kv);
+    bind(kv, (n, R) => {
+      const e = R.savings.ef;
+      n.innerHTML = [[`Your must-pay costs each month ${TIP(T.mustPay)}`, fm(e.mustPay)], ['Emergency fund target', fm(e.target)], ['Saved in it now', fm(e.saved)], ['Still needed', fm(e.needed)],
+        ['Months to reach it at your current deposit', e.toReach === null ? '<span class="warn">Add a monthly deposit</span>' : e.toReach], ['Expected to be fully funded by', fmon(e.fundedBy, true) || '–']]
+        .map(([a, b]) => `<div class="lab">${a}</div><div class="num">${b}</div>`).join('');
+    });
+    const right = el('div', { class: 'box' }, '<h3>How long you could cover your bills</h3><div data-b="ef"></div>');
+    bind($('[data-b="ef"]', right), (n, R) => {
+      const e = R.savings.ef, c = e.months < 3 ? 'neg' : e.months < M.num(S.settings.efMonths) ? 'warn' : 'pos';
+      n.innerHTML = `<div class="fig"><div class="val num ${c}" style="font-size:44px">${e.months.toFixed(1)}<small>months</small></div></div>
+        <p class="muted" style="margin:4px 0 14px">If your income stopped today, your emergency fund would pay your must-pay bills for about ${e.months.toFixed(1)} months.</p>
+        ${barHTML(e.progress, '#2E86C1')}<p class="small" style="margin:8px 0 0">${fp(e.progress)} of your ${M.num(S.settings.efMonths)}-month target ${pill(e.status)}</p>`;
+    });
+    box.append(left, right);
+    p.appendChild(box);
+  },
+
+  investments(p) {
+    p.innerHTML = head('Investments', "Money you've put into things that can grow, like funds or shares. Values go up and down; the long run is what counts.");
+    p.appendChild(figs(
+      fig('Value today', (n, R) => n.innerHTML = fmc(R.investments.totValue)),
+      fig('Money you put in', (n, R) => n.innerHTML = fmc(R.investments.totIn)),
+      fig('Gain or loss', (n, R) => n.innerHTML = `<span class="${signCls(R.investments.totGain)}">${fm(R.investments.totGain)}</span><small> ${cur()} ${fp(R.investments.totGainPct, 1)}</small>`, T.gain),
+      fig('Added each month', (n, R) => n.innerHTML = fmc(R.investments.totContrib)),
+    ));
+    const H = (i, R) => R.investments.rows[i] || {};
+    p.appendChild(table({
+      rows: S.holdings, name: 'holdings', onStructure: rerender('investments'), addLabel: 'Add investment', emptyText: 'No investments yet. That\'s fine: an emergency fund comes first.',
+      blank: () => ({ name: '', kind: 'Index fund / ETF', where: '', units: '', avgPrice: '', price: '', contribution: '', growth: '' }),
+      cols: [
+        { key: 'name', label: 'Investment', wide: true, span: true, placeholder: 'e.g. Global index fund' },
+        { key: 'kind', label: 'Kind', type: 'select', options: ['Index fund / ETF', 'Individual shares', 'Sukuk / bonds', 'Mutual fund', 'Real estate fund', 'Gold', 'Crypto', 'Retirement account', 'Other'] },
+        { key: 'where', label: "Where it's held" },
+        { key: 'units', label: 'Units or shares owned', type: 'number', min: 0, tip: T.units },
+        { key: 'avgPrice', label: 'Average price you paid (per unit)', type: 'number', min: 0, tip: T.avg },
+        { key: 'price', label: 'Price today (per unit)', type: 'number', min: 0 },
+        { key: 'contribution', label: 'Monthly contribution', type: 'money', min: 0 },
+        { key: 'growth', label: 'Expected yearly growth', type: 'pct', tip: T.growth },
+        { key: 'putIn', label: 'Money you put in', r: true, calc: (r, i, R) => fm(H(i, R).putIn) },
+        { key: 'value', label: 'Value today', r: true, calc: (r, i, R) => H(i, R).on ? `<b>${fm(H(i, R).value)}</b>` : '' },
+        { key: 'gain', label: 'Gain or loss', r: true, tip: T.gain, calc: (r, i, R) => H(i, R).on ? `<span class="${signCls(H(i, R).gain)}">${fm(H(i, R).gain)}</span>` : '' },
+        { key: 'gainPct', label: 'Gain or loss %', r: true, calc: (r, i, R) => H(i, R).on ? `<span class="${signCls(H(i, R).gain)}">${fp(H(i, R).gainPct, 1)}</span>` : '' },
+        { key: 'in10', label: 'Value in 10 years (estimate)', r: true, tip: T.in10, calc: (r, i, R) => fm(H(i, R).in10) },
+        { key: 'share', label: 'Share of portfolio', r: true, calc: (r, i, R) => fp(H(i, R).share) },
+      ],
+      totals: { contribution: R => fm(R.investments.totContrib), putIn: R => fm(R.investments.totIn), value: R => fm(R.investments.totValue), gain: R => `<span class="${signCls(R.investments.totGain)}">${fm(R.investments.totGain)}</span>`, gainPct: R => fp(R.investments.totGainPct, 1), in10: R => fm(R.investments.totIn10), growth: R => `avg ${fp(R.investments.avgGrowth, 1)}` },
+    }));
+    const sec = el('div', { class: 'block' }, '<h2>What your investments could grow to</h2><p class="sub">Three guesses side by side, so you see a range instead of one number. These are estimates, not promises. Real returns rise and fall from year to year.</p>');
+    const box = el('div', { class: 'box' });
+    const sc = el('div', { style: 'display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px' });
+    ['Cautious growth per year', 'Middle growth per year', 'Hopeful growth per year'].forEach((l, j) => {
+      const lab = el('label', { class: 'small', style: 'display:grid;gap:4px;min-width:150px' }, `<span>${l}</span>`);
+      lab.appendChild(input({ key: j, label: l, type: 'pct' }, S.settings.scenarios, `scenarios.${j}`));
+      sc.appendChild(lab);
+    });
+    box.appendChild(sc);
+    const yrs = S.settings.years.map((y, i) => ({ get y() { return S.settings.years[i]; }, set y(v) { S.settings.years[i] = v; } }));
+    box.appendChild(table({
+      rows: yrs, name: 'years', readOnly: true,
+      cols: [
+        { key: 'y', label: 'Years from now', type: 'number', min: 0 },
+        { key: 'p', label: "Money you'll have put in", r: true, tip: "Today's value plus every monthly contribution. Anything above this is growth.", calc: (r, i, R) => fm(R.investments.projection[i]?.putIn) },
+        { key: 'a', label: 'If growth is cautious', r: true, calc: (r, i, R) => fm(R.investments.projection[i]?.vals[0]) },
+        { key: 'b', label: 'If growth is middle', r: true, calc: (r, i, R) => fm(R.investments.projection[i]?.vals[1]) },
+        { key: 'c', label: 'If growth is hopeful', r: true, calc: (r, i, R) => `<b>${fm(R.investments.projection[i]?.vals[2])}</b>` },
+      ],
+    }));
+    box.appendChild(el('div', { style: 'margin-top:18px' }, '<h3>Possible growth of your investments</h3><div class="chart" data-chart="invest"></div>'));
+    sec.appendChild(box);
+    p.appendChild(sec);
+  },
+
+  networth(p) {
+    p.innerHTML = head('Net Worth', "Net worth = everything you own minus everything you owe. Watching it grow is the clearest sign you're winning.");
+    const top = el('div', { class: 'box', style: 'margin-bottom:20px' });
+    bind(top, (n, R) => {
+      const N = R.networth;
+      n.innerHTML = `<div class="figs" style="margin:0"><div class="fig"><div class="lab">Your net worth today ${TIP(T.netWorth)}</div><div class="val num ${N.net < 0 ? 'neg' : 'pos'}" style="font-size:40px">${fm(N.net)}<small>${cur()}</small></div></div>
+        <div class="fig"><div class="lab">Share of what you own that's borrowed</div><div class="val num">${fp(N.borrowedShare) || '–'}</div></div>
+        <div class="fig"><div class="lab">Change since your last recorded month</div><div class="val num ${signCls(N.change)}">${ok(N.change) ? (N.change >= 0 ? '+' : '') + fm(N.change) : '–'}</div></div></div>`;
+    });
+    p.appendChild(top);
+    const g = el('div', { class: 'grid2' });
+    const mk = (title, items, totalFn) => {
+      const b = el('div', { class: 'box' }, `<h3>${title}</h3>`);
+      const kv = el('div', { class: 'kv', style: 'align-items:center' });
+      items.forEach(([label, key, linkFn, note]) => {
+        kv.appendChild(el('div', { class: 'lab' }, `<span>${label}<br><span class="muted small">${note}</span></span>`));
+        const v = el('div');
+        if (linkFn) bind(v, (n, R) => n.innerHTML = `<span class="num">${fm(linkFn(R))}</span>`);
+        else { const inp = input({ key, label, type: 'money', min: 0 }, S.networth, `networth.${key}`); inp.style.maxWidth = '160px'; inp.style.textAlign = 'right'; v.appendChild(inp); }
+        kv.appendChild(v);
+      });
+      const tl = el('div', {}, `<b>${title.replace('What', 'Total')}</b>`), tv = el('div');
+      bind(tv, (n, R) => n.innerHTML = `<b class="num">${fm(totalFn(R))}</b>`);
+      kv.append(tl, tv); b.appendChild(kv); return b;
+    };
+    g.appendChild(mk('What you own', [
+      ['Cash in your everyday bank account', 'cash', null, 'Type it in'], ['Savings pots', null, R => R.savings.totBal, 'From the Savings tab'],
+      ['Investments', null, R => R.investments.totValue, 'From the Investments tab'], ['Home (what it would sell for)', 'home', null, 'Type it in, or leave empty'],
+      ['Car (what it would sell for)', 'car', null, 'Type it in, or leave empty'], ['Other valuables', 'valuables', null, 'Type it in'], ['Other', 'otherOwn', null, 'Type it in'],
+    ], R => R.networth.own));
+    g.appendChild(mk('What you owe', [
+      ['Loans and mortgage (still owed)', null, R => R.loans.totOwed, 'From the Loans tab'], ['Credit card balances', 'card', null, 'Type it in'],
+      ['Money owed to family or friends', 'family', null, 'Type it in'], ['Other debts', 'otherOwe', null, 'Type it in'],
+    ], R => R.networth.owe));
+    p.appendChild(g);
+    const sec = el('div', { class: 'block' }, '<h2>Month by month</h2><p class="sub">At the end of each month, record your totals. This builds your trend.</p>');
+    const b = el('div', { class: 'box', style: 'margin-bottom:16px' }, '<div class="chart" data-chart="networth"></div>');
+    sec.appendChild(b);
+    const rec = el('button', { type: 'button', class: 'btn solid', onclick: () => {
+      const m = R.RM.slice(0, 7), row = { month: m, own: Math.round(R.networth.own), owe: Math.round(R.networth.owe), note: '' };
+      const idx = S.history.findIndex(h => h.month === m);
+      if (idx >= 0) { row.note = S.history[idx].note; S.history[idx] = row; } else { S.history.push(row); S.history.sort((a, c) => String(a.month).localeCompare(String(c.month))); }
+      render('networth'); markDirty(); refresh();
+    } });
+    bind(rec, (n, R) => n.textContent = `Record today's totals for ${fmon(R.RM, true)}`);
+    const act = el('div', { class: 'tbl-actions', style: 'margin:0 0 14px' }); act.appendChild(rec); sec.appendChild(act);
+    sec.appendChild(table({
+      rows: S.history, name: 'history', onStructure: rerender('networth'), addLabel: 'Add a month by hand',
+      blank: () => ({ month: '', own: '', owe: '', note: '' }),
+      cols: [
+        { key: 'month', label: 'Month', type: 'month' },
+        { key: 'own', label: 'What you own', type: 'money', min: 0 },
+        { key: 'owe', label: 'What you owe', type: 'money', min: 0 },
+        { key: 'net', label: 'Net worth', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && h.net !== null ? `<b>${fm(h.net)}</b>` : ''; } },
+        { key: 'chg', label: 'Change from last month', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && ok(h.change) ? `<span class="${signCls(h.change)}">${h.change >= 0 ? '+' : ''}${fm(h.change)}</span>` : ''; } },
+        { key: 'note', label: 'Note', wide: true, span: true },
+      ],
+    }));
+    p.appendChild(sec);
+  },
+
+  goals(p) {
+    p.innerHTML = head('Goals', 'What are you working towards? Set a target and a date, and see how much to put aside each month.');
+    p.appendChild(figs(
+      fig('Goals reached or on track', (n, R) => n.textContent = `${R.goals.onTrack} of ${R.goals.count}`),
+      fig('Going to goals each month', (n, R) => n.innerHTML = fmc(R.goals.rows.filter(g => g.on).reduce((a, g) => a + g.deposit, 0))),
+    ));
+    const pl = el('div', { class: 'box', style: 'margin-bottom:22px' }, '<div class="progress-list"></div>');
+    bind($('.progress-list', pl), goalList);
+    p.appendChild(pl);
+    const G = (i, R) => R.goals.rows[i] || {};
+    const noPot = r => !!r.pot;
+    p.appendChild(table({
+      rows: S.goals, name: 'goals', onStructure: rerender('goals'), addLabel: 'Add goal', emptyText: 'No goals yet. What would you love to afford?',
+      blank: () => ({ name: '', target: '', date: '', pot: '', saved: '', deposit: '', growth: '' }),
+      cols: [
+        { key: 'name', label: 'Goal', wide: true, span: true, placeholder: 'e.g. Holiday' },
+        { key: 'target', label: 'Target amount', type: 'money', min: 0 },
+        { key: 'date', label: 'Target date', type: 'month' },
+        { key: 'pot', label: 'Savings pot for this goal (optional)', type: 'select', allowEmpty: true, emptyLabel: 'No pot', tip: T.goalPot, options: () => S.pots.map(x => x.name).filter(Boolean) },
+        { key: 'saved', label: 'Saved so far (if no pot)', type: 'money', min: 0, disabled: noPot },
+        { key: 'deposit', label: 'Monthly deposit (if no pot)', type: 'money', min: 0, disabled: noPot },
+        { key: 'growth', label: 'Yearly growth (if no pot)', type: 'pct', tip: T.goalGrowth, disabled: noPot },
+        { key: 'prog', label: 'Progress', calc: (r, i, R) => { const g = G(i, R); return g.on && ok(g.progress) ? `<div style="display:flex;gap:8px;align-items:center"><span class="num" style="min-width:40px">${fp(g.progress)}</span>${barHTML(g.progress, '#8E44AD')}</div>` : ''; } },
+        { key: 'sv', label: 'Saved so far', r: true, calc: (r, i, R) => fm(G(i, R).saved) },
+        { key: 'ml', label: 'Months left', r: true, calc: (r, i, R) => G(i, R).on && G(i, R).monthsLeft !== null ? G(i, R).monthsLeft : '' },
+        { key: 'nd', label: 'Needed each month', r: true, tip: T.needed, calc: (r, i, R) => ok(G(i, R).needed) ? `<b>${fm(G(i, R).needed)}</b>` : '' },
+        { key: 'dp', label: "You're putting in", r: true, calc: (r, i, R) => fm(G(i, R).deposit) },
+        { key: 'ex', label: 'Expected by target date', r: true, tip: T.expected, calc: (r, i, R) => fm(G(i, R).expected) },
+        { key: 'st', label: 'Status', calc: (r, i, R) => pill(G(i, R).status) },
+        { key: 'nx', label: 'What to do next', span: true, calc: (r, i, R) => esc(G(i, R).next || '') },
+      ],
+    }));
+  },
+
+  cashflow(p) {
+    p.innerHTML = head('Monthly cash flow', 'Money in, minus spending and loan payments, for each month of your plan year. Positive = money to save. Negative = you spent more than came in.');
+    p.appendChild(figs(
+      fig('Money in this year', (n, R) => n.innerHTML = fmc(R.cashflow.total.in)),
+      fig('Going out this year', (n, R) => n.innerHTML = fmc(R.cashflow.total.outTotal)),
+      fig('Left over this year', (n, R) => n.innerHTML = `<span class="${signCls(R.cashflow.total.left)}">${fm(R.cashflow.total.left)}</span><small> ${cur()}</small>`, T.leftOver),
+      fig('Share left over', (n, R) => n.textContent = fp(R.cashflow.total.share), T.share),
+    ));
+    p.appendChild(el('div', { class: 'box', style: 'margin-bottom:20px' }, '<h3>Money in vs money going out</h3><div class="chart" data-chart="cashflow"></div>'));
+    const rows = Array.from({ length: 12 }, (_, i) => ({ i }));
+    const C = (i, R) => R.cashflow.months[i];
+    const money = (k, bold) => (r, i, R) => { const v = C(i, R)[k]; return bold ? `<b>${fm(v)}</b>` : fm(v); };
+    const sgn = k => (r, i, R) => { const v = C(i, R)[k]; return `<b class="${v < 0 ? (k === 'unassigned' ? 'warn' : 'neg') : k === 'left' ? 'pos' : ''}">${fm(v)}</b>`; };
+    const Tt = k => R => fm(R.cashflow.total[k]);
+    p.appendChild(table({
+      rows, name: 'cf', readOnly: true,
+      rowClass: (r, i, R) => C(i, R).m === R.RM ? 'hl' : '',
+      cols: [
+        { key: 'm', label: 'Month', span: true, calc: (r, i, R) => `<b>${fmon(C(i, R).m, true)}</b>${C(i, R).m === R.RM ? ' <span class="pill mid">Reviewing</span>' : ''}` },
+        { key: 'in', label: 'Money coming in', r: true, calc: money('in', true) },
+        { key: 'planned', label: 'Planned spending (budget)', r: true, calc: money('planned') },
+        { key: 'logged', label: 'Spending you logged', r: true, calc: money('logged') },
+        { key: 'counted', label: 'Spending counted', r: true, tip: T.counted, calc: money('counted') },
+        { key: 'loans', label: 'Loan and mortgage payments', r: true, calc: money('loans') },
+        { key: 'outTotal', label: 'Total going out', r: true, calc: money('outTotal', true) },
+        { key: 'left', label: 'Left over (surplus or shortfall)', r: true, tip: T.leftOver, calc: sgn('left') },
+        { key: 'share', label: 'Share left over', r: true, calc: (r, i, R) => `<span class="${C(i, R).share < 0 ? 'neg' : ''}">${fp(C(i, R).share)}</span>` },
+        { key: 'sav', label: 'Planned savings deposits', r: true, calc: money('sav') },
+        { key: 'inv', label: 'Planned investment contributions', r: true, calc: money('inv') },
+        { key: 'unassigned', label: 'Money still unassigned', r: true, tip: T.unassigned, calc: sgn('unassigned') },
+        { key: 'running', label: 'Left over so far this year', r: true, calc: money('running') },
+      ],
+      totals: { m: () => '<b>Year total</b>', in: Tt('in'), planned: Tt('planned'), logged: Tt('logged'), counted: Tt('counted'), loans: Tt('loans'), outTotal: Tt('outTotal'), left: R => `<span class="${signCls(R.cashflow.total.left)}">${fm(R.cashflow.total.left)}</span>`, share: R => fp(R.cashflow.total.share), sav: Tt('sav'), inv: Tt('inv'), unassigned: Tt('unassigned') },
+    }));
+  },
+};
+
+function render(id) { const p = $(`#panel-${id}`); p.innerHTML = ''; RENDER[id](p); }
+
+/* ---------------- shell ---------------- */
+function buildShell() {
+  const nav = $('#tabs');
+  PANELS.forEach(([id, label]) => {
+    nav.appendChild(el('button', { type: 'button', class: 'tab', role: 'tab', id: `tab-${id}`, 'aria-controls': `panel-${id}`, 'aria-selected': String(id === UI.tab), style: `--tc:var(--c-${id})`, onclick: () => showTab(id) }, `<i></i>${label}`));
+    $('#panels').appendChild(el('section', { class: 'panel', id: `panel-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, hidden: id !== UI.tab }));
+  });
+  nav.addEventListener('keydown', e => {
+    if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+    const ids = PANELS.map(x => x[0]); let i = ids.indexOf(UI.tab) + (e.key === 'ArrowRight' ? 1 : -1);
+    i = (i + ids.length) % ids.length; showTab(ids[i]); $(`#tab-${ids[i]}`).focus();
+  });
+}
+function showTab(id) {
+  UI.tab = id;
+  PANELS.forEach(([pid]) => { $(`#tab-${pid}`).setAttribute('aria-selected', String(pid === id)); $(`#panel-${pid}`).hidden = pid !== id; });
+  const t = $(`#tab-${id}`), strip = t.parentElement;
+  if (strip.scrollWidth > strip.clientWidth) {
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    strip.scrollTo({ left: Math.max(0, t.offsetLeft - (strip.clientWidth - t.offsetWidth) / 2), behavior: smooth ? 'smooth' : 'auto' });
+  }
+  window.scrollTo({ top: 0 });
+  refresh();
+}
+function renderAll() { PANELS.forEach(([id]) => render(id)); syncSettings(); refresh(); }
+function syncSettings() {
+  $('#reviewMonth').value = S.settings.reviewMonth.slice(0, 7);
+  $('#planStart').value = S.settings.planStart.slice(0, 7);
+  $('#currency').value = S.settings.currency;
+}
+function shiftMonth(k) { S.settings.reviewMonth = M.edate(S.settings.reviewMonth, k).slice(0, 7); $('#reviewMonth').value = S.settings.reviewMonth; markDirty(); refresh(); }
+function blankState() {
+  const s = sampleState();
+  return {
+    settings: { ...s.settings, scheduleLoan: '', efPot: 'Emergency fund' },
+    income: [{ name: '', kind: 'Salary / wages', freq: 'Monthly', amount: '', start: '', end: '', note: '' }],
+    budget: s.budget.map(b => ({ ...b, budget: '' })),
+    log: [], loans: [],
+    pots: [{ name: 'Emergency fund', purpose: 'Safety net for job loss or surprise bills', balance: '', deposit: '', rate: '' }],
+    holdings: [], networth: { cash: '', home: '', car: '', valuables: '', otherOwn: '', card: '', family: '', otherOwe: '' }, history: [], goals: [],
+  };
+}
+
+/* ---------------- backup: import & export ---------------- */
+const uid = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const XLSX_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+let xlsxLoading = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxLoading) xlsxLoading = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = XLSX_SRC; s.async = true;
+    s.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error('missing'));
+    s.onerror = () => { xlsxLoading = null; s.remove(); rej(new Error('offline')); };
+    document.head.appendChild(s);
+  });
+  return xlsxLoading;
+}
+
+// Sheet map: mirrors the companion Excel workbook's tab names and column headers.
+const SHEETS = [
+  { name: 'Income', key: 'income', aliases: ['income', 'money in'],
+    cols: [['Where the money comes from', 'name', 'text'], ['Kind of income', 'kind', 'text'], ['How often', 'freq', 'text'],
+      ['Amount each time', 'amount', 'money'], ['Start date (or date received)', 'start', 'date'],
+      ['End date (blank if ongoing)', 'end', 'date'], ['Notes', 'note', 'text']] },
+  { name: 'Expenses', key: 'budget', aliases: ['expenses', 'budget', 'spending'],
+    cols: [['Spending area', 'name', 'text'], ['Fixed or variable?', 'type', 'text'], ['Monthly budget', 'budget', 'money']] },
+  { name: 'Spending Log', key: 'log', aliases: ['spending log', 'expenses', 'log', 'transactions'],
+    cols: [['Date', 'date', 'date'], ['Spending area', 'area', 'text'], ['What was it?', 'what', 'text'], ['Amount', 'amount', 'money']] },
+  { name: 'Loans', key: 'loans', aliases: ['loans', 'loans and mortgage', 'debt', 'debt/mortgage', 'debt mortgage', 'mortgage', 'debts'],
+    cols: [['Loan name', 'name', 'text'], ['Kind of loan', 'kind', 'text'], ['Amount borrowed', 'amount', 'money'],
+      ['Yearly interest rate', 'rate', 'pct'], ['Loan length (years)', 'years', 'num'],
+      ['First payment date', 'first', 'date'], ['Extra you pay each month (optional)', 'extra', 'money']] },
+  { name: 'Savings', key: 'pots', aliases: ['savings', 'savings pots'],
+    cols: [['Savings pot', 'name', 'text'], ["What it's for", 'purpose', 'text'], ['Balance right now', 'balance', 'money'],
+      ['Monthly deposit', 'deposit', 'money'], ['Yearly interest or profit rate', 'rate', 'pct']] },
+  { name: 'Investments', key: 'holdings', aliases: ['investments', 'holdings', 'portfolio'],
+    cols: [['Investment', 'name', 'text'], ['Kind', 'kind', 'text'], ["Where it's held", 'where', 'text'],
+      ['Units or shares owned', 'units', 'num'], ['Average price you paid (per unit)', 'avgPrice', 'num'],
+      ['Price today (per unit)', 'price', 'num'], ['Monthly contribution', 'contribution', 'money'],
+      ['Expected yearly growth', 'growth', 'pct']] },
+  { name: 'Goals', key: 'goals', aliases: ['goals'],
+    cols: [['Goal', 'name', 'text'], ['Target amount', 'target', 'money'], ['Target date', 'date', 'month'],
+      ['Savings pot for this goal (optional)', 'pot', 'text'], ['Saved so far (only if no pot)', 'saved', 'money'],
+      ['Monthly deposit (only if no pot)', 'deposit', 'money'], ['Yearly growth (only if no pot)', 'growth', 'pct']] },
+  { name: 'Net Worth', key: 'history', aliases: ['net worth', 'networth', 'net worth history'],
+    cols: [['Month', 'month', 'month'], ['What you own', 'own', 'money'], ['What you owe', 'owe', 'money'], ['Note', 'note', 'text']] },
+];
+const ASSETS = { name: 'Assets', aliases: ['assets', 'net worth', 'what you own'], label: 'What you own',
+  rows: [['Cash in your everyday bank account', 'cash'], ['Home (what it would sell for)', 'home'],
+    ['Car (what it would sell for)', 'car'], ['Other valuables', 'valuables'], ['Other', 'otherOwn']] };
+const LIABILITIES = { name: 'Liabilities', aliases: ['liabilities', 'net worth', 'what you owe'], label: 'What you owe',
+  rows: [['Credit card balances', 'card'], ['Money owed to family or friends', 'family'], ['Other debts', 'otherOwe']] };
+const SETTINGS_ROWS = [['Currency label', 'currency', 'text'], ['Month to review', 'reviewMonth', 'month'],
+  ['First month of your plan year', 'planStart', 'month'], ['Emergency fund pot', 'efPot', 'text'],
+  ['Months of costs you want covered', 'efMonths', 'num'], ['Loan shown in the schedule', 'scheduleLoan', 'text']];
+
+const norm = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const isBlank = v => v === null || v === undefined || String(v).trim() === '';
+
+function toDate(v) {
+  if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+  if (typeof v === 'number' && isFinite(v)) { const d = new Date(Math.round((v - 25569) * 86400000)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
+  const s = String(v ?? '').trim(); if (!s) return '';
+  let m = s.match(/^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?/);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${(m[3] || '1').padStart(2, '0')}`;
+  const d = new Date(s);
+  return isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function toNum(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : '';
+  const s = String(v ?? '').replace(/[^0-9.\-]/g, '');
+  return s === '' || s === '-' || !isFinite(+s) ? '' : +s;
+}
+function toPct(v) {
+  if (typeof v === 'number') return isFinite(v) ? (Math.abs(v) > 1 ? v / 100 : v) : '';
+  const s = String(v ?? '').trim(); if (!s) return '';
+  const hasSign = s.includes('%'), n = toNum(s);
+  if (n === '') return '';
+  return hasSign || Math.abs(n) > 1 ? n / 100 : n;
+}
+const conv = { text: v => isBlank(v) ? '' : String(v).trim(), num: toNum, money: toNum, pct: toPct,
+  date: toDate, month: v => { const d = toDate(v); return d ? d.slice(0, 7) : ''; } };
+
+function aoa(XLSX, ws) { return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, blankrows: true, defval: null }); }
+
+// Find a header row whose columns match the spec in strictly increasing order.
+function findHeader(rows, cols) {
+  for (let r = 0; r < Math.min(rows.length, 60); r++) {
+    const row = rows[r] || [];
+    const map = {}; let last = -1, hits = 0;
+    cols.forEach(([label, key]) => {
+      const want = norm(label);
+      for (let c = last + 1; c < row.length; c++) {
+        if (norm(row[c]) === want) { map[key] = c; last = c; hits++; return; }
+      }
+    });
+    if (map[cols[0][1]] !== undefined && hits >= Math.max(2, Math.ceil(cols.length / 2))) return { row: r, map };
+  }
+  return null;
+}
+function readRows(rows, head, cols) {
+  const out = [], firstKey = cols[0][1], types = Object.fromEntries(cols.map(([, k, t]) => [k, t]));
+  let gap = 0;
+  for (let r = head.row + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const first = row[head.map[firstKey]];
+    if (typeof first === 'string' && /^\s*(total|totals|year total)\b/i.test(first)) break;
+    const rec = {}; let filled = 0;
+    for (const [, key] of cols.map(c => [c[0], c[1]])) {
+      const idx = head.map[key];
+      const raw = idx === undefined ? null : row[idx];
+      rec[key] = conv[types[key]](raw);
+      if (!isBlank(rec[key])) filled++;
+    }
+    if (isBlank(rec[firstKey]) || filled < 2) { if (++gap > 40) break; continue; }
+    gap = 0; rec.id = uid();
+    out.push(rec);
+  }
+  return out;
+}
+function readPairs(rows, spec) {
+  const head = findHeader(rows, [[spec.label, 'label', 'text'], ['Amount', 'amount', 'money']]);
+  if (!head) return null;
+  const byLabel = {}; spec.rows.forEach(([l, k]) => { byLabel[norm(l)] = k; byLabel[norm(k)] = k; });
+  const out = {}; let found = 0, gap = 0;
+  for (let r = head.row + 1; r < rows.length; r++) {
+    const row = rows[r] || [], label = row[head.map.label];
+    if (typeof label === 'string' && /^\s*total/i.test(label)) break;
+    if (isBlank(label)) { if (++gap > 20) break; continue; }
+    gap = 0;
+    const key = byLabel[norm(label)];
+    if (!key) continue;
+    out[key] = toNum(row[head.map.amount]);
+    found++;
+  }
+  return found ? out : null;
+}
+
+function importWorkbook(XLSX, buf) {
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const next = JSON.parse(JSON.stringify(S));
+  const hit = [];
+  const sheetsFor = al => wb.SheetNames.filter(n => al.some(a => norm(a) === norm(n)));
+  SHEETS.forEach(spec => {
+    for (const sheetName of sheetsFor(spec.aliases)) {
+      const rows = aoa(XLSX, wb.Sheets[sheetName]);
+      const head = findHeader(rows, spec.cols);
+      if (!head) continue;
+      const data = readRows(rows, head, spec.cols);
+      if (!data.length) continue;
+      next[spec.key] = data;
+      hit.push(spec.name);
+      break;
+    }
+  });
+  [ASSETS, LIABILITIES].forEach(spec => {
+    for (const sheetName of sheetsFor(spec.aliases)) {
+      const got = readPairs(aoa(XLSX, wb.Sheets[sheetName]), spec);
+      if (!got) continue;
+      Object.assign(next.networth, got);
+      hit.push(spec.name);
+      break;
+    }
+  });
+  const setSheet = wb.SheetNames.find(n => norm(n) === 'settings');
+  if (setSheet) {
+    const rows = aoa(XLSX, wb.Sheets[setSheet]);
+    const head = findHeader(rows, [['Setting', 'label', 'text'], ['Value', 'value', 'text']]);
+    if (head) {
+      const by = {}; SETTINGS_ROWS.forEach(([l, k, t]) => { by[norm(l)] = [k, t]; by[norm(k)] = [k, t]; });
+      let n = 0;
+      for (let r = head.row + 1; r < rows.length; r++) {
+        const row = rows[r] || [], m = by[norm(row[head.map.label])];
+        if (!m || isBlank(row[head.map.value])) continue;
+        const v = conv[m[1]](row[head.map.value]);
+        if (!isBlank(v)) { next.settings[m[0]] = v; n++; }
+      }
+      if (n) hit.push('Settings');
+    }
+  }
+  if (!hit.length) throw new Error('No matching sheets');
+  return { next, hit };
+}
+
+function exportWorkbook(XLSX) {
+  const wb = XLSX.utils.book_new();
+  const stamp = (ws, cols) => {
+    cols.forEach(([, key, type], i) => {
+      if (type !== 'pct' && type !== 'date' && type !== 'month') return;
+      const col = XLSX.utils.encode_col(i);
+      for (let r = 2; r < 5000; r++) {
+        const cell = ws[col + r]; if (!cell) continue;
+        if (type === 'pct') cell.z = '0.00%';
+        else if (cell.t === 'd') cell.z = type === 'month' ? 'mmm yyyy' : 'd mmm yyyy';
+      }
+    });
+    ws['!cols'] = cols.map(([label]) => ({ wch: Math.min(34, Math.max(12, label.length + 2)) }));
+    return ws;
+  };
+  const cellVal = (row, key, type) => {
+    const v = row[key];
+    if (isBlank(v)) return '';
+    if (type === 'date' || type === 'month') { const d = toDate(v); if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd || 1); }
+    if (type === 'money' || type === 'num' || type === 'pct') { const n = toNum(v); return n === '' ? '' : n; }
+    return String(v);
+  };
+  SHEETS.forEach(spec => {
+    const src = Array.isArray(S[spec.key]) ? S[spec.key] : [];
+    const data = src.filter(r => spec.cols.some(([, k]) => !isBlank(r[k])))
+      .map(r => Object.fromEntries(spec.cols.map(([label, key, type]) => [label, cellVal(r, key, type)])));
+    const ws = XLSX.utils.json_to_sheet(data, { header: spec.cols.map(c => c[0]), cellDates: true });
+    XLSX.utils.book_append_sheet(wb, stamp(ws, spec.cols), spec.name);
+  });
+  [ASSETS, LIABILITIES].forEach(spec => {
+    const data = spec.rows.map(([label, key]) => ({ [spec.label]: label, Amount: isBlank(S.networth[key]) ? '' : toNum(S.networth[key]) }));
+    const ws = XLSX.utils.json_to_sheet(data, { header: [spec.label, 'Amount'] });
+    ws['!cols'] = [{ wch: 34 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws, spec.name);
+  });
+  const sData = SETTINGS_ROWS.map(([label, key, type]) => ({ Setting: label, Value: type === 'num' ? toNum(S.settings[key]) : String(S.settings[key] ?? '') }));
+  const sws = XLSX.utils.json_to_sheet(sData, { header: ['Setting', 'Value'] });
+  sws['!cols'] = [{ wch: 32 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, sws, 'Settings');
+  XLSX.writeFile(wb, `dfinance-${S.settings.reviewMonth}.xlsx`, { cellDates: true, compression: true });
+}
+
+function download(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: name, rel: 'noopener' });
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
+function ioMsg(kind, text) {
+  const n = $('#ioMsg'); if (!n) return;
+  n.hidden = false; n.dataset.kind = kind; n.textContent = text;
+  clearTimeout(ioMsg.t);
+  if (kind === 'ok') ioMsg.t = setTimeout(() => { n.hidden = true; }, 6000);
+}
+function ioBusy(on, text) {
+  $$('#backup button, #backup label').forEach(b => b.classList.toggle('busy', !!on));
+  if (on) ioMsg('info', text);
+}
+function applyState(next) {
+  S = next;
+  renderAll();
+  markDirty();
+  saveNow();
+}
+function mergeJSON(parsed) {
+  const base = blankState();
+  const next = Object.assign(base, parsed);
+  next.settings = Object.assign(blankState().settings, parsed.settings || {});
+  next.networth = Object.assign(blankState().networth, parsed.networth || {});
+  ['income', 'budget', 'log', 'loans', 'pots', 'holdings', 'goals', 'history'].forEach(k => {
+    next[k] = Array.isArray(next[k]) ? next[k].map(r => (r && typeof r === 'object') ? { ...r, id: r.id || uid() } : r).filter(r => r && typeof r === 'object') : base[k];
+  });
+  return next;
+}
+
+function wireBackup() {
+  $('#exportJSON').addEventListener('click', async () => {
+    try {
+      download(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }), `dfinance-backup-${S.settings.reviewMonth}.json`);
+      await saveNow();
+      ioMsg('ok', 'Backup file saved to your downloads.');
+    } catch (e) { ioMsg('bad', "Couldn't create the backup file on this device."); }
+  });
+  $('#importJSON').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (!/\.json$/i.test(f.name) && f.type !== 'application/json') { ioMsg('bad', 'That needs to be a .json backup file. Your numbers are unchanged.'); return; }
+    try {
+      const parsed = JSON.parse(await f.text());
+      if (!parsed || typeof parsed !== 'object' || (!parsed.settings && !Array.isArray(parsed.income))) throw new Error('shape');
+      applyState(mergeJSON(parsed));
+      ioMsg('ok', 'Backup restored. Everything is back the way you saved it.');
+    } catch (err) { ioMsg('bad', "That file couldn't be read as a money-plan backup. Your numbers are unchanged."); }
+  });
+  $('#exportXLSX').addEventListener('click', async () => {
+    ioBusy(true, 'Building your Excel file\u2026');
+    try {
+      const XLSX = await loadXLSX();
+      exportWorkbook(XLSX);
+      await saveNow();
+      ioBusy(false); ioMsg('ok', 'Excel file saved to your downloads.');
+    } catch (err) {
+      ioBusy(false);
+      ioMsg('bad', err.message === 'offline' ? 'Excel files need an internet connection the first time you use them. Reconnect and try again.' : "Couldn't build the Excel file. Your numbers are unchanged.");
+    }
+  });
+  $('#importXLSX').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (!/\.(xlsx|xlsm|xls)$/i.test(f.name)) { ioMsg('bad', 'That needs to be an Excel file (.xlsx). Your numbers are unchanged.'); return; }
+    ioBusy(true, 'Reading your workbook\u2026');
+    try {
+      const XLSX = await loadXLSX();
+      const { next, hit } = importWorkbook(XLSX, await f.arrayBuffer());
+      applyState(next);
+      ioBusy(false);
+      ioMsg('ok', `Brought in: ${hit.join(', ')}. Anything the workbook didn't cover was left as it was.`);
+    } catch (err) {
+      ioBusy(false);
+      ioMsg('bad', err.message === 'offline' ? 'Excel files need an internet connection the first time you use them. Reconnect and try again.'
+        : err.message === 'No matching sheets' ? "None of that workbook's tabs matched the planner. Your numbers are unchanged."
+          : "That workbook couldn't be read. Your numbers are unchanged.");
+    }
+  });
+}
+
+/* ---------------- saving ---------------- */
+const KEY = 'money-planner-v1';
+// Persistence: localStorage is the store for the hosted app; window.storage is a
+// fallback for runtimes that provide it instead (e.g. the Claude artifact sandbox).
+const hasLocal = (() => {
+  try { const k = '__t'; window.localStorage.setItem(k, '1'); window.localStorage.removeItem(k); return true; }
+  catch (e) { return false; }
+})();
+const Store = {
+  async get() {
+    if (hasLocal) { const v = window.localStorage.getItem(KEY); if (v !== null) return v; }
+    if (window.storage && window.storage.get) { try { const r = await window.storage.get(KEY, false); return r ? r.value : null; } catch (e) { return null; } }
+    return null;
+  },
+  async set(v) {
+    if (hasLocal) { window.localStorage.setItem(KEY, v); return true; }
+    if (window.storage && window.storage.set) { const r = await window.storage.set(KEY, v, false); if (!r) throw new Error('not saved'); return true; }
+    throw new Error('no store');
+  },
+};
+let ready = false, saveTimer = null, saving = false, saveAgain = false;
+function setSaveState(k) {
+  const n = $('#saveState'); if (!n) return;
+  n.dataset.state = k;
+  n.textContent = k === 'saving' ? 'Saving\u2026' : k === 'error' ? "Couldn't save on this device" : 'All changes saved';
+}
+async function saveNow() {
+  if (saving) { saveAgain = true; return; }
+  saving = true; setSaveState('saving');
+  try { await Store.set(JSON.stringify(S)); setSaveState('saved'); }
+  catch (e) { setSaveState('error'); }
+  saving = false;
+  if (saveAgain) { saveAgain = false; saveNow(); }
+}
+function markDirty() {
+  if (!ready) return;
+  setSaveState('saving');
+  clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 600);
+}
+async function loadSaved() {
+  try {
+    const raw = await Store.get();
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || !d.settings || !Array.isArray(d.income)) return false;
+    const base = blankState();
+    S = { ...base, ...d, settings: { ...base.settings, ...d.settings } };
+    return true;
+  } catch (e) { return false; }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  buildShell();
+  $('#reviewMonth').addEventListener('change', e => { if (e.target.value) { S.settings.reviewMonth = e.target.value; markDirty(); refresh(); } });
+  $('#planStart').addEventListener('change', e => { if (e.target.value) { S.settings.planStart = e.target.value; markDirty(); refresh(); } });
+  $('#currency').addEventListener('input', e => { S.settings.currency = e.target.value.trim(); markDirty(); refresh(); });
+  $('#prevMonth').addEventListener('click', () => shiftMonth(-1));
+  $('#nextMonth').addEventListener('click', () => shiftMonth(1));
+  wireBackup();
+  $('#resetSample').addEventListener('click', () => { if (confirm('Replace everything with the example numbers?')) { S = sampleState(); renderAll(); markDirty(); } });
+  $('#resetBlank').addEventListener('click', () => { if (confirm('Clear all your numbers and start with a blank plan?')) { S = blankState(); renderAll(); showTab('income'); markDirty(); } });
+
+  // tooltips (tap-friendly: no hover-only behaviour)
+  const box = $('#tipbox'); let tipOwner = null, touchMode = false;
+  document.addEventListener('touchstart', () => { touchMode = true; }, { passive: true, capture: true });
+  const show = b => { tipOwner = b; box.textContent = b.dataset.tip; box.classList.add('on'); b.setAttribute('aria-describedby', 'tipbox');
+    const r = b.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight;
+    let x = Math.min(window.innerWidth - bw - 8, Math.max(8, r.left + r.width / 2 - bw / 2)), y = r.top - bh - 8; if (y < 8) y = r.bottom + 8;
+    box.style.left = `${x}px`; box.style.top = `${y}px`; };
+  const hide = () => { if (tipOwner) tipOwner.removeAttribute('aria-describedby'); tipOwner = null; box.classList.remove('on'); };
+  document.addEventListener('mouseover', e => { if (touchMode) return; const b = e.target.closest('.tipbtn'); if (b) show(b); });
+  document.addEventListener('mouseout', e => { if (touchMode) return; if (e.target.closest('.tipbtn')) hide(); });
+  document.addEventListener('focusin', e => { const b = e.target.closest('.tipbtn'); b ? show(b) : hide(); });
+  document.addEventListener('click', e => { const b = e.target.closest('.tipbtn'); if (b) { e.preventDefault(); show(b); } else hide(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { hide(); $$('details.settings[open]').forEach(d => d.open = false); } });
+  window.addEventListener('scroll', hide, { passive: true });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawCharts, 120); });
+
+  const had = await loadSaved();
+  renderAll();
+  ready = true;
+  had ? setSaveState('saved') : saveNow();
+});
+})();
+
+</script>
+</body>
+</html>
