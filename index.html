@@ -243,6 +243,7 @@ table.ed tr.over td.c{color:var(--down)}
 .del{border:0;background:transparent;color:var(--muted);width:44px;height:44px;border-radius:8px;cursor:pointer;font-size:22px;line-height:1}
 .del:hover{background:var(--down-bg);color:var(--down)}
 .tbl-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.tbl-actions + .tbl-wrap{margin-top:0}
 .btn{border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:16px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--accent-soft)}
 .btn.solid{background:var(--accent-solid);color:var(--on-accent)}
@@ -860,7 +861,7 @@ function input(col, row, path) {
 }
 
 /* ---------------- editable table ---------------- */
-function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, onStructure, readOnly, emptyText, addFirst }) {
+function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, onStructure, readOnly, emptyText, addFirst, actionsPos }) {
   const wrap = el('div');
   const tw = el('div', { class: 'tbl-wrap' });
   const t = el('table', { class: 'ed' });
@@ -898,13 +899,16 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
     if (!readOnly) tr.appendChild(el('td', { class: 'act' }));
     tb.appendChild(tr);
   }
-  t.appendChild(tb); tw.appendChild(t); wrap.appendChild(tw);
-  if (!rows.length && emptyText) wrap.insertBefore(el('p', { class: 'empty' }, esc(emptyText)), tw);
+  t.appendChild(tb); tw.appendChild(t);
+  if (!rows.length && emptyText) wrap.appendChild(el('p', { class: 'empty' }, esc(emptyText)));
+  let act = null;
   if (!readOnly && blank) {
-    const act = el('div', { class: 'tbl-actions' });
+    act = el('div', { class: 'tbl-actions' });
     act.appendChild(el('button', { type: 'button', class: 'btn', onclick: () => { const b = blank(); addFirst ? rows.unshift(b) : rows.push(b); onStructure(); setTimeout(() => { const inp = $(`[data-path="${name}.${addFirst ? 0 : rows.length - 1}.${cols.find(c => !c.calc).key}"]`); inp && inp.focus(); }, 30); } }, `+ ${esc(addLabel)}`));
-    wrap.appendChild(act);
   }
+  if (act && actionsPos === 'top') wrap.appendChild(act);
+  wrap.appendChild(tw);
+  if (act && actionsPos !== 'top') wrap.appendChild(act);
   return wrap;
 }
 
@@ -1199,7 +1203,7 @@ const RENDER = {
     lh.appendChild(seg);
     p.appendChild(lh);
     const logWrap = table({
-      rows: S.log, name: 'log', onStructure: rerender('expenses'), addLabel: 'Add spending', addFirst: true,
+      rows: S.log, name: 'log', onStructure: rerender('expenses'), addLabel: 'Add spending', addFirst: true, actionsPos: 'top',
       blank: () => { const now = new Date(); const t = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; return { date: R.RM.slice(0, 7) === t ? `${t}-${String(now.getDate()).padStart(2, '0')}` : R.RM, area: '', what: '', amount: '' }; },
       filter: (r, i, R) => UI.logFilter === 'all' || !r.date || r.date.slice(0, 7) === R.RM.slice(0, 7),
       cols: [
