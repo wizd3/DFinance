@@ -244,6 +244,22 @@ table.ed tr.over td.c{color:var(--down)}
 .del:hover{background:var(--down-bg);color:var(--down)}
 .tbl-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .tbl-actions + .tbl-wrap{margin-top:0}
+
+/* ---------- table controls: search / category filters / sort / drag reorder ---------- */
+.tbl-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tbl-controls .tbl-search{max-width:260px;min-width:160px}
+.tbl-controls .tbl-filter{max-width:220px}
+table.ed th.sortable{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+table.ed th.sortable:hover{background:var(--accent-solid-2)}
+table.ed th.sortable:focus-visible{outline:3px solid var(--input-focus);outline-offset:-3px}
+table.ed .sort-ind{display:inline-block;width:1em;font-size:11px;opacity:.9}
+table.ed th.drag-col{width:36px;min-width:36px}
+table.ed td.drag{width:36px;padding-left:10px !important;padding-right:0}
+.draghandle{border:0;background:transparent;color:var(--muted);width:32px;height:36px;border-radius:8px;cursor:grab;font-size:18px;line-height:1;touch-action:none;-webkit-tap-highlight-color:transparent}
+.draghandle:hover{background:var(--line-2);color:var(--ink)}
+.draghandle[disabled]{opacity:.35;cursor:not-allowed}
+table.ed tr.dragging{position:relative;z-index:5;box-shadow:0 6px 18px var(--shadow);background:var(--surface)}
+table.ed tr.drag-over td{border-top:2px solid var(--accent)}
 .btn{border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:16px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--accent-soft)}
 .btn.solid{background:var(--accent-solid);color:var(--on-accent)}
@@ -318,6 +334,11 @@ table.ed tr[hidden]{display:none !important}
   .in{min-width:0}
   .in.w-wide{min-width:0}
   .sched table.ed tr{grid-template-columns:1fr 1fr 1fr}
+  .tbl-controls{flex-direction:column;align-items:stretch}
+  .tbl-controls .tbl-search, .tbl-controls .tbl-filter{max-width:none}
+  table.ed td.drag{grid-column:1 / -1;order:-1;padding:0 0 6px !important;width:auto}
+  table.ed td.drag::before{display:none}
+  table.ed tr{position:relative}
 }
 
 /* ---------- phones: bottom tab bar ---------- */
@@ -741,7 +762,7 @@ if (typeof module !== 'undefined') module.exports = sampleState;
 'use strict';
 let S = sampleState();
 let R = M.compute(S);
-const UI = { tab: 'dashboard', logFilter: 'month' };
+const UI = { tab: 'dashboard', logFilter: 'month', tableUI: {} };
 
 /* ---------------- helpers ---------------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -855,22 +876,135 @@ function input(col, row, path) {
       else row[col.key] = node.value;
       schedule();
     });
+    if (col.cascade) {
+      let before = row[col.key] ?? '';
+      node.addEventListener('focus', () => { before = row[col.key] ?? ''; });
+      node.addEventListener('change', () => {
+        const after = row[col.key] ?? '';
+        if (before && after !== before) col.cascade(before, after, row);
+        before = after;
+      });
+    }
   }
   if (col.disabled) bind(node, n => { n.disabled = col.disabled(row); });
   return node;
 }
 
+/* ---------------- table sort/search helpers ---------------- */
+function tblCmp(a, b) {
+  const ea = a === '' || a === null || a === undefined, eb = b === '' || b === null || b === undefined;
+  if (ea && eb) return 0; if (ea) return 1; if (eb) return -1;
+  const na = +a, nb = +b;
+  if (a !== '' && b !== '' && !isNaN(na) && !isNaN(nb)) return na - nb;
+  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+}
+function tblFilterActive(st, filters) {
+  return !!(st.q && st.q.trim()) || (filters || []).some(f => st.filters[f.key]);
+}
+
 /* ---------------- editable table ---------------- */
-function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, onStructure, readOnly, emptyText, addFirst, actionsPos }) {
+function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, onStructure, readOnly, emptyText, addFirst, actionsPos, search, filters, reorder }) {
   const wrap = el('div');
+  const canReorder = !!reorder && !readOnly;
+  const st = (UI.tableUI[name] ??= { q: '', sort: null, dir: 1, filters: {} });
+
+  if (search || (filters && filters.length)) {
+    const controls = el('div', { class: 'tbl-controls' });
+    if (search) {
+      const si = el('input', { class: 'in tbl-search', type: 'search', placeholder: search.placeholder || 'Search…', 'aria-label': search.placeholder || 'Search' });
+      si.value = st.q;
+      si.addEventListener('input', () => { st.q = si.value; refresh(); });
+      controls.appendChild(si);
+    }
+    (filters || []).forEach(f => {
+      const sel = el('select', { class: 'in tbl-filter', 'aria-label': f.label });
+      const fillOpts = () => {
+        const raw = typeof f.options === 'function' ? f.options() : f.options;
+        const opts = [...new Set((raw || []).filter(o => o !== '' && o !== null && o !== undefined))];
+        const curV = st.filters[f.key] || '';
+        if (curV && !opts.includes(curV)) opts.push(curV);
+        const sig = opts.join('\u0001');
+        if (sel.dataset.sig === sig) { sel.value = curV; return; }
+        sel.dataset.sig = sig;
+        sel.innerHTML = `<option value="">${esc(f.label)}: All</option>` + opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+        sel.value = curV;
+      };
+      fillOpts();
+      if (typeof f.options === 'function') bind(sel, fillOpts);
+      sel.addEventListener('change', () => { st.filters[f.key] = sel.value; refresh(); });
+      controls.appendChild(sel);
+    });
+    wrap.appendChild(controls);
+  }
+
   const tw = el('div', { class: 'tbl-wrap' });
   const t = el('table', { class: 'ed' });
   const thead = el('thead');
-  thead.innerHTML = `<tr>${cols.map(c => `<th class="${c.r ? 'r' : ''}" scope="col">${esc(c.label)} ${c.tip ? TIP(c.tip) : ''}</th>`).join('')}${readOnly ? '' : '<th aria-label="Remove"></th>'}</tr>`;
+  const headTr = el('tr');
+  if (canReorder) headTr.appendChild(el('th', { class: 'drag-col', 'aria-label': '' }));
+  cols.forEach(c => {
+    const sortable = !c.noSort && (c.sortValue || !c.calc);
+    const th = el('th', { class: [c.r ? 'r' : '', sortable ? 'sortable' : ''].join(' ').trim(), scope: 'col' });
+    th.innerHTML = `${esc(c.label)}<span class="sort-ind"></span> ${c.tip ? TIP(c.tip) : ''}`;
+    if (sortable) {
+      th.tabIndex = 0; th.setAttribute('role', 'button'); th.setAttribute('aria-label', `Sort by ${c.label}`);
+      const doSort = () => { if (st.sort === c.key) st.dir = -st.dir; else { st.sort = c.key; st.dir = 1; } refresh(); };
+      th.addEventListener('click', doSort);
+      th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doSort(); } });
+      bind(th, () => {
+        th.setAttribute('aria-sort', st.sort === c.key ? (st.dir === 1 ? 'ascending' : 'descending') : 'none');
+        const ind = $('.sort-ind', th); if (ind) ind.textContent = st.sort === c.key ? (st.dir === 1 ? ' \u25B2' : ' \u25BC') : '';
+      });
+    }
+    headTr.appendChild(th);
+  });
+  if (!readOnly) headTr.appendChild(el('th', { 'aria-label': 'Remove' }));
+  thead.appendChild(headTr);
   t.appendChild(thead);
   const tb = el('tbody');
+  const entries = [];
+  function wireDrag(handle, tr, i) {
+    bind(handle, () => { const locked = !!st.sort || tblFilterActive(st, filters); handle.disabled = locked; handle.title = locked ? 'Clear search, filters and sort to reorder' : 'Drag to reorder'; });
+    handle.addEventListener('pointerdown', e => {
+      if (handle.disabled) return;
+      e.preventDefault();
+      tr.classList.add('dragging');
+      try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+      const onMove = ev => {
+        const y = ev.clientY;
+        const sibs = $$('tr', tb).filter(x => x !== tr && !x.classList.contains('total'));
+        for (const sib of sibs) {
+          const r = sib.getBoundingClientRect(), mid = r.top + r.height / 2;
+          if (y < mid) { tb.insertBefore(tr, sib); break; }
+          if (y >= mid && sib.nextElementSibling !== tr) { tb.insertBefore(tr, sib.nextElementSibling); break; }
+        }
+      };
+      const onUp = ev2 => {
+        tr.classList.remove('dragging');
+        try { handle.releasePointerCapture(ev2.pointerId); } catch (err) {}
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        const newTrs = $$('tr', tb).filter(x => !x.classList.contains('total'));
+        const newRows = newTrs.map(x => rows[+x.dataset.idx]);
+        if (newRows.length === rows.length) {
+          rows.length = 0; rows.push(...newRows);
+          rows.forEach((r, pos) => { r.order = pos; });
+          onStructure();
+        }
+      };
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+  }
   rows.forEach((row, i) => {
     const tr = el('tr');
+    tr.dataset.idx = i;
+    if (canReorder) {
+      const td = el('td', { class: 'drag', 'data-label': '' });
+      const h = el('button', { type: 'button', class: 'draghandle', 'aria-label': 'Drag to reorder' }, '\u2807');
+      td.appendChild(h); tr.appendChild(td);
+      wireDrag(h, tr, i);
+    }
     cols.forEach((c, ci) => {
       const td = el('td', { 'data-label': c.label, class: [c.calc ? 'c' : '', c.r ? 'r' : '', c.span ? 'span' : '', ci === 0 ? 'first' : ''].join(' ').trim() });
       if (c.calc) bind(td, (n, R) => { n.innerHTML = c.calc(row, i, R) ?? ''; });
@@ -883,11 +1017,30 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
       tr.appendChild(td);
     }
     if (rowClass) bind(tr, (n, R) => { n.className = rowClass(row, i, R) || ''; });
-    if (filter) bind(tr, (n, R) => { n.hidden = !filter(row, i, R); });
+    bind(tr, (n, R) => {
+      let visible = true;
+      if (filter && !filter(row, i, R)) visible = false;
+      if (visible && search && st.q && st.q.trim()) {
+        const q = st.q.trim().toLowerCase();
+        visible = search.keys.some(k => String(row[k] ?? '').toLowerCase().includes(q));
+      }
+      if (visible && filters) {
+        for (const f of filters) {
+          const want = st.filters[f.key];
+          if (!want) continue;
+          const val = f.value ? f.value(row, i, R) : row[f.key];
+          if (String(val ?? '') !== want) { visible = false; break; }
+        }
+      }
+      n.hidden = !visible;
+    });
     tb.appendChild(tr);
+    entries.push({ tr, row, i });
   });
+  let totalsRow = null;
   if (totals) {
     const tr = el('tr', { class: 'total' });
+    if (canReorder) tr.appendChild(el('td', { 'data-label': '' }));
     cols.forEach((c, ci) => {
       const td = el('td', { 'data-label': c.label, class: [c.r ? 'r' : '', ci === 0 ? 'first' : ''].join(' ') });
       const f = totals[c.key];
@@ -897,14 +1050,36 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
       tr.appendChild(td);
     });
     if (!readOnly) tr.appendChild(el('td', { class: 'act' }));
+    totalsRow = tr;
     tb.appendChild(tr);
+  }
+  if (entries.length) {
+    bind(tb, (n, R) => {
+      let order = entries.map((e, k) => k);
+      if (st.sort) {
+        const c = cols.find(x => x.key === st.sort);
+        if (c) order.sort((a, b) => {
+          const va = c.sortValue ? c.sortValue(entries[a].row, entries[a].i, R) : entries[a].row[c.key];
+          const vb = c.sortValue ? c.sortValue(entries[b].row, entries[b].i, R) : entries[b].row[c.key];
+          return tblCmp(va, vb) * st.dir;
+        });
+      } else if (canReorder) {
+        order.sort((a, b) => (M.num(entries[a].row.order) - M.num(entries[b].row.order)) || (a - b));
+      } else return;
+      order.forEach(k => n.appendChild(entries[k].tr));
+      if (totalsRow) n.appendChild(totalsRow);
+    });
   }
   t.appendChild(tb); tw.appendChild(t);
   if (!rows.length && emptyText) wrap.appendChild(el('p', { class: 'empty' }, esc(emptyText)));
   let act = null;
   if (!readOnly && blank) {
     act = el('div', { class: 'tbl-actions' });
-    act.appendChild(el('button', { type: 'button', class: 'btn', onclick: () => { const b = blank(); addFirst ? rows.unshift(b) : rows.push(b); onStructure(); setTimeout(() => { const inp = $(`[data-path="${name}.${addFirst ? 0 : rows.length - 1}.${cols.find(c => !c.calc).key}"]`); inp && inp.focus(); }, 30); } }, `+ ${esc(addLabel)}`));
+    act.appendChild(el('button', { type: 'button', class: 'btn', onclick: () => {
+      const b = blank(); if (canReorder) b.order = rows.length;
+      addFirst ? rows.unshift(b) : rows.push(b); onStructure();
+      setTimeout(() => { const inp = $(`[data-path="${name}.${addFirst ? 0 : rows.length - 1}.${cols.find(c => !c.calc).key}"]`); inp && inp.focus(); }, 30);
+    } }, `+ ${esc(addLabel)}`));
   }
   if (act && actionsPos === 'top') wrap.appendChild(act);
   wrap.appendChild(tw);
@@ -1148,6 +1323,9 @@ const RENDER = {
     p.appendChild(table({
       rows: S.income, name: 'income', onStructure: rerender('income'), addLabel: 'Add income', emptyText: 'No income yet. Add your salary or any money you receive.',
       blank: () => ({ name: '', kind: 'Salary / wages', freq: 'Monthly', amount: '', start: '', end: '', note: '' }),
+      search: { keys: ['name', 'note'], placeholder: 'Search income…' },
+      filters: [{ key: 'kind', label: 'Kind', options: kinds }, { key: 'freq', label: 'Frequency', options: ['Monthly', 'Every 2 weeks', 'Weekly', 'Yearly', 'One-time'] }],
+      reorder: true,
       cols: [
         { key: 'name', label: 'Where the money comes from', wide: true, placeholder: 'e.g. Main job', span: true },
         { key: 'kind', label: 'Kind of income', type: 'select', options: kinds },
@@ -1155,7 +1333,7 @@ const RENDER = {
         { key: 'amount', label: 'Amount each time', type: 'money', min: 0 },
         { key: 'start', label: 'Start date (or date received)', type: 'date' },
         { key: 'end', label: 'End date (empty if ongoing)', type: 'date' },
-        { key: 'typ', label: 'Typical monthly amount', calc: (r, i, R) => fm(R.income.rows[i]?.monthly), r: true, tip: T.typical },
+        { key: 'typ', label: 'Typical monthly amount', calc: (r, i, R) => fm(R.income.rows[i]?.monthly), r: true, tip: T.typical, sortValue: (r, i, R) => R.income.rows[i]?.monthly ?? 0 },
         { key: 'note', label: 'Notes', wide: true, span: true },
       ],
       totals: { typ: R => fm(R.income.typicalMonthly) },
@@ -1182,12 +1360,15 @@ const RENDER = {
     p.appendChild(table({
       rows: S.budget, name: 'budget', onStructure: rerender('expenses'), addLabel: 'Add spending area',
       blank: () => ({ name: '', type: 'Variable', budget: '' }),
+      search: { keys: ['name'], placeholder: 'Search spending areas…' },
+      filters: [{ key: 'type', label: 'Type', options: ['Fixed', 'Variable'] }],
+      reorder: true,
       cols: [
-        { key: 'name', label: 'Spending area', wide: true, placeholder: 'e.g. Groceries', span: true },
+        { key: 'name', label: 'Spending area', wide: true, placeholder: 'e.g. Groceries', span: true, cascade: (oldVal, newVal) => { if (!oldVal) return; S.log.forEach(l => { if (l.area === oldVal) l.area = newVal; }); markDirty(); refresh(); } },
         { key: 'type', label: 'Fixed or variable?', type: 'select', options: ['Fixed', 'Variable'], tip: T.fixed },
         { key: 'budget', label: 'Monthly budget', type: 'money', min: 0, tip: T.budget },
-        { key: 'spent', label: 'Spent this month', calc: (r, i, R) => fm(R.expenses.rows[i]?.spent), r: true },
-        { key: 'left', label: 'Left to spend', calc: (r, i, R) => { const v = R.expenses.rows[i]?.left; return ok(v) ? `<span class="${v < 0 ? 'neg' : ''}">${fm(v)}</span>` : ''; }, r: true },
+        { key: 'spent', label: 'Spent this month', calc: (r, i, R) => fm(R.expenses.rows[i]?.spent), r: true, sortValue: (r, i, R) => R.expenses.rows[i]?.spent ?? 0 },
+        { key: 'left', label: 'Left to spend', calc: (r, i, R) => { const v = R.expenses.rows[i]?.left; return ok(v) ? `<span class="${v < 0 ? 'neg' : ''}">${fm(v)}</span>` : ''; }, r: true, sortValue: (r, i, R) => R.expenses.rows[i]?.left ?? 0 },
         { key: 'pct', label: '% of budget used', tip: T.pctUsed, calc: (r, i, R) => { const b = R.expenses.rows[i]; if (!b || !ok(b.pct)) return ''; const c = b.status === 'Over budget' ? C.bad : b.status === 'Close to limit' ? C.warn : C.ok; return `<div style="display:flex;gap:8px;align-items:center"><span class="num" style="min-width:42px">${fp(b.pct)}</span>${barHTML(b.pct, c)}</div>`; } },
         { key: 'status', label: 'Status', calc: (r, i, R) => pill(R.expenses.rows[i]?.status) },
       ],
@@ -1206,12 +1387,17 @@ const RENDER = {
       rows: S.log, name: 'log', onStructure: rerender('expenses'), addLabel: 'Add spending', addFirst: true, actionsPos: 'top',
       blank: () => { const now = new Date(); const t = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; return { date: R.RM.slice(0, 7) === t ? `${t}-${String(now.getDate()).padStart(2, '0')}` : R.RM, area: '', what: '', amount: '' }; },
       filter: (r, i, R) => UI.logFilter === 'all' || !r.date || r.date.slice(0, 7) === R.RM.slice(0, 7),
+      search: { keys: ['what', 'area'], placeholder: 'Search spending…' },
+      filters: [
+        { key: 'area', label: 'Category', options: () => S.budget.map(b => b.name).filter(Boolean) },
+        { key: 'type', label: 'Type', options: ['Fixed', 'Variable', 'Not in budget'], value: (r, i, R) => R.expenses.logType[i] },
+      ],
       cols: [
         { key: 'date', label: 'Date', type: 'date' },
         { key: 'area', label: 'Spending area', type: 'select', allowEmpty: true, emptyLabel: 'Pick an area', options: R => S.budget.map(b => b.name).filter(Boolean) },
         { key: 'what', label: 'What was it?', wide: true, span: true, placeholder: 'e.g. Weekly shop' },
         { key: 'amount', label: 'Amount', type: 'money', min: 0 },
-        { key: 'type', label: 'Fixed or variable', calc: (r, i, R) => { const t = R.expenses.logType[i]; return t === 'Not in budget' ? pill(t) : esc(t); } },
+        { key: 'type', label: 'Fixed or variable', calc: (r, i, R) => { const t = R.expenses.logType[i]; return t === 'Not in budget' ? pill(t) : esc(t); }, sortValue: (r, i, R) => R.expenses.logType[i] || '' },
       ],
     });
     logWrap.style.marginTop = '12px';
@@ -1231,6 +1417,9 @@ const RENDER = {
     p.appendChild(table({
       rows: S.loans, name: 'loans', onStructure: rerender('loans'), addLabel: 'Add loan', emptyText: 'No loans. Nice! Add one here if you have a mortgage, car loan or other debt.',
       blank: () => ({ name: '', kind: 'Personal loan', amount: '', rate: '', years: '', first: '', extra: '' }),
+      search: { keys: ['name'], placeholder: 'Search loans…' },
+      filters: [{ key: 'kind', label: 'Type', options: ['Mortgage', 'Car loan', 'Personal loan', 'Student loan', 'Credit card', 'Other'] }],
+      reorder: true,
       cols: [
         { key: 'name', label: 'Loan name', wide: true, span: true, placeholder: 'e.g. Car loan' },
         { key: 'kind', label: 'Kind of loan', type: 'select', options: ['Mortgage', 'Car loan', 'Personal loan', 'Student loan', 'Credit card', 'Other'] },
@@ -1239,9 +1428,9 @@ const RENDER = {
         { key: 'years', label: 'Loan length (years)', type: 'number', min: 0 },
         { key: 'first', label: 'First payment date', type: 'date' },
         { key: 'extra', label: 'Extra you pay each month', type: 'money', min: 0, tip: T.extra },
-        { key: 'pmt', label: 'Required monthly payment', r: true, tip: T.required, calc: (r, i, R) => need(i, R, l => fm(l.pmt)) },
-        { key: 'tot', label: 'Total you pay each month', r: true, calc: (r, i, R) => need(i, R, l => `<b>${fm(l.total)}</b>`) },
-        { key: 'owed', label: 'Still owed today', r: true, tip: T.owed, calc: (r, i, R) => need(i, R, l => l.owed === null ? '<span class="muted small">Add first payment date</span>' : l.owed === 0 ? pill('Reached') : fm(l.owed)) },
+        { key: 'pmt', label: 'Required monthly payment', r: true, tip: T.required, calc: (r, i, R) => need(i, R, l => fm(l.pmt)), sortValue: (r, i, R) => L(i, R).pmt ?? 0 },
+        { key: 'tot', label: 'Total you pay each month', r: true, calc: (r, i, R) => need(i, R, l => `<b>${fm(l.total)}</b>`), sortValue: (r, i, R) => L(i, R).total ?? 0 },
+        { key: 'owed', label: 'Still owed today', r: true, tip: T.owed, calc: (r, i, R) => need(i, R, l => l.owed === null ? '<span class="muted small">Add first payment date</span>' : l.owed === 0 ? pill('Reached') : fm(l.owed)), sortValue: (r, i, R) => L(i, R).owed ?? 0 },
         { key: 'px', label: 'Paid off by (with extra)', calc: (r, i, R) => need(i, R, l => fmon(l.payoffExtra)) },
         { key: 'pn', label: 'Paid off by (no extra)', calc: (r, i, R) => need(i, R, l => fmon(l.payoffNoExtra)) },
         { key: 'soon', label: 'Months sooner', r: true, calc: (r, i, R) => need(i, R, l => l.sooner > 0 ? `<span class="pos">${l.sooner}</span>` : '0') },
@@ -1316,14 +1505,16 @@ const RENDER = {
     p.appendChild(table({
       rows: S.pots, name: 'pots', onStructure: rerender('savings'), addLabel: 'Add savings pot', emptyText: 'No savings pots yet. Start with an emergency fund.',
       blank: () => ({ name: '', purpose: '', balance: '', deposit: '', rate: '' }),
+      search: { keys: ['name', 'purpose'], placeholder: 'Search savings pots…' },
+      reorder: true,
       cols: [
         { key: 'name', label: 'Savings pot', wide: true, span: true, placeholder: 'e.g. Emergency fund' },
         { key: 'purpose', label: "What it's for", wide: true, span: true },
         { key: 'balance', label: 'Balance right now', type: 'money' },
         { key: 'deposit', label: 'Monthly deposit', type: 'money', min: 0 },
         { key: 'rate', label: 'Yearly interest or profit rate', type: 'pct', tip: T.savRate },
-        { key: 'in12', label: 'Balance in 12 months', r: true, tip: T.in12, calc: (r, i, R) => fm(R.savings.rows[i]?.in12) },
-        { key: 'share', label: 'Share of all savings', r: true, calc: (r, i, R) => fp(R.savings.rows[i]?.share) },
+        { key: 'in12', label: 'Balance in 12 months', r: true, tip: T.in12, calc: (r, i, R) => fm(R.savings.rows[i]?.in12), sortValue: (r, i, R) => R.savings.rows[i]?.in12 ?? 0 },
+        { key: 'share', label: 'Share of all savings', r: true, calc: (r, i, R) => fp(R.savings.rows[i]?.share), sortValue: (r, i, R) => R.savings.rows[i]?.share ?? 0 },
       ],
       totals: { balance: R => fm(R.savings.totBal), deposit: R => fm(R.savings.totDep), in12: R => fm(R.savings.tot12) },
     }));
@@ -1364,6 +1555,9 @@ const RENDER = {
     p.appendChild(table({
       rows: S.holdings, name: 'holdings', onStructure: rerender('investments'), addLabel: 'Add investment', emptyText: 'No investments yet. That\'s fine: an emergency fund comes first.',
       blank: () => ({ name: '', kind: 'Index fund / ETF', where: '', units: '', avgPrice: '', price: '', contribution: '', growth: '' }),
+      search: { keys: ['name', 'where'], placeholder: 'Search investments…' },
+      filters: [{ key: 'kind', label: 'Kind', options: ['Index fund / ETF', 'Individual shares', 'Sukuk / bonds', 'Mutual fund', 'Real estate fund', 'Gold', 'Crypto', 'Retirement account', 'Other'] }],
+      reorder: true,
       cols: [
         { key: 'name', label: 'Investment', wide: true, span: true, placeholder: 'e.g. Global index fund' },
         { key: 'kind', label: 'Kind', type: 'select', options: ['Index fund / ETF', 'Individual shares', 'Sukuk / bonds', 'Mutual fund', 'Real estate fund', 'Gold', 'Crypto', 'Retirement account', 'Other'] },
@@ -1373,9 +1567,9 @@ const RENDER = {
         { key: 'price', label: 'Price today (per unit)', type: 'number', min: 0 },
         { key: 'contribution', label: 'Monthly contribution', type: 'money', min: 0 },
         { key: 'growth', label: 'Expected yearly growth', type: 'pct', tip: T.growth },
-        { key: 'putIn', label: 'Money you put in', r: true, calc: (r, i, R) => fm(H(i, R).putIn) },
-        { key: 'value', label: 'Value today', r: true, calc: (r, i, R) => H(i, R).on ? `<b>${fm(H(i, R).value)}</b>` : '' },
-        { key: 'gain', label: 'Gain or loss', r: true, tip: T.gain, calc: (r, i, R) => H(i, R).on ? `<span class="${signCls(H(i, R).gain)}">${fm(H(i, R).gain)}</span>` : '' },
+        { key: 'putIn', label: 'Money you put in', r: true, calc: (r, i, R) => fm(H(i, R).putIn), sortValue: (r, i, R) => H(i, R).putIn ?? 0 },
+        { key: 'value', label: 'Value today', r: true, calc: (r, i, R) => H(i, R).on ? `<b>${fm(H(i, R).value)}</b>` : '', sortValue: (r, i, R) => H(i, R).value ?? 0 },
+        { key: 'gain', label: 'Gain or loss', r: true, tip: T.gain, calc: (r, i, R) => H(i, R).on ? `<span class="${signCls(H(i, R).gain)}">${fm(H(i, R).gain)}</span>` : '', sortValue: (r, i, R) => H(i, R).gain ?? 0 },
         { key: 'gainPct', label: 'Gain or loss %', r: true, calc: (r, i, R) => H(i, R).on ? `<span class="${signCls(H(i, R).gain)}">${fp(H(i, R).gainPct, 1)}</span>` : '' },
         { key: 'in10', label: 'Value in 10 years (estimate)', r: true, tip: T.in10, calc: (r, i, R) => fm(H(i, R).in10) },
         { key: 'share', label: 'Share of portfolio', r: true, calc: (r, i, R) => fp(H(i, R).share) },
@@ -1456,12 +1650,13 @@ const RENDER = {
     sec.appendChild(table({
       rows: S.history, name: 'history', onStructure: rerender('networth'), addLabel: 'Add a month by hand',
       blank: () => ({ month: '', own: '', owe: '', note: '' }),
+      search: { keys: ['note', 'month'], placeholder: 'Search records…' },
       cols: [
         { key: 'month', label: 'Month', type: 'month' },
         { key: 'own', label: 'What you own', type: 'money', min: 0 },
         { key: 'owe', label: 'What you owe', type: 'money', min: 0 },
-        { key: 'net', label: 'Net worth', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && h.net !== null ? `<b>${fm(h.net)}</b>` : ''; } },
-        { key: 'chg', label: 'Change from last month', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && ok(h.change) ? `<span class="${signCls(h.change)}">${h.change >= 0 ? '+' : ''}${fm(h.change)}</span>` : ''; } },
+        { key: 'net', label: 'Net worth', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && h.net !== null ? `<b>${fm(h.net)}</b>` : ''; }, sortValue: (r, i, R) => R.networth.history[i]?.net ?? 0 },
+        { key: 'chg', label: 'Change from last month', r: true, calc: (r, i, R) => { const h = R.networth.history[i]; return h && ok(h.change) ? `<span class="${signCls(h.change)}">${h.change >= 0 ? '+' : ''}${fm(h.change)}</span>` : ''; }, sortValue: (r, i, R) => R.networth.history[i]?.change ?? 0 },
         { key: 'note', label: 'Note', wide: true, span: true },
       ],
     }));
@@ -1482,6 +1677,8 @@ const RENDER = {
     p.appendChild(table({
       rows: S.goals, name: 'goals', onStructure: rerender('goals'), addLabel: 'Add goal', emptyText: 'No goals yet. What would you love to afford?',
       blank: () => ({ name: '', target: '', date: '', pot: '', saved: '', deposit: '', growth: '' }),
+      search: { keys: ['name'], placeholder: 'Search goals…' },
+      reorder: true,
       cols: [
         { key: 'name', label: 'Goal', wide: true, span: true, placeholder: 'e.g. Holiday' },
         { key: 'target', label: 'Target amount', type: 'money', min: 0 },
@@ -1490,10 +1687,10 @@ const RENDER = {
         { key: 'saved', label: 'Saved so far (if no pot)', type: 'money', min: 0, disabled: noPot },
         { key: 'deposit', label: 'Monthly deposit (if no pot)', type: 'money', min: 0, disabled: noPot },
         { key: 'growth', label: 'Yearly growth (if no pot)', type: 'pct', tip: T.goalGrowth, disabled: noPot },
-        { key: 'prog', label: 'Progress', calc: (r, i, R) => { const g = G(i, R); return g.on && ok(g.progress) ? `<div style="display:flex;gap:8px;align-items:center"><span class="num" style="min-width:40px">${fp(g.progress)}</span>${barHTML(g.progress, C.goal)}</div>` : ''; } },
-        { key: 'sv', label: 'Saved so far', r: true, calc: (r, i, R) => fm(G(i, R).saved) },
-        { key: 'ml', label: 'Months left', r: true, calc: (r, i, R) => G(i, R).on && G(i, R).monthsLeft !== null ? G(i, R).monthsLeft : '' },
-        { key: 'nd', label: 'Needed each month', r: true, tip: T.needed, calc: (r, i, R) => ok(G(i, R).needed) ? `<b>${fm(G(i, R).needed)}</b>` : '' },
+        { key: 'prog', label: 'Progress', calc: (r, i, R) => { const g = G(i, R); return g.on && ok(g.progress) ? `<div style="display:flex;gap:8px;align-items:center"><span class="num" style="min-width:40px">${fp(g.progress)}</span>${barHTML(g.progress, C.goal)}</div>` : ''; }, sortValue: (r, i, R) => G(i, R).progress ?? 0 },
+        { key: 'sv', label: 'Saved so far', r: true, calc: (r, i, R) => fm(G(i, R).saved), sortValue: (r, i, R) => G(i, R).saved ?? 0 },
+        { key: 'ml', label: 'Months left', r: true, calc: (r, i, R) => G(i, R).on && G(i, R).monthsLeft !== null ? G(i, R).monthsLeft : '', sortValue: (r, i, R) => G(i, R).monthsLeft ?? 0 },
+        { key: 'nd', label: 'Needed each month', r: true, tip: T.needed, calc: (r, i, R) => ok(G(i, R).needed) ? `<b>${fm(G(i, R).needed)}</b>` : '', sortValue: (r, i, R) => G(i, R).needed ?? 0 },
         { key: 'dp', label: "You're putting in", r: true, calc: (r, i, R) => fm(G(i, R).deposit) },
         { key: 'ex', label: 'Expected by target date', r: true, tip: T.expected, calc: (r, i, R) => fm(G(i, R).expected) },
         { key: 'st', label: 'Status', calc: (r, i, R) => pill(G(i, R).status) },
