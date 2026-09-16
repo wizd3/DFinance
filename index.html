@@ -943,7 +943,7 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
   const headTr = el('tr');
   if (canReorder) headTr.appendChild(el('th', { class: 'drag-col', 'aria-label': '' }));
   cols.forEach(c => {
-    const sortable = !c.noSort && (c.sortValue || !c.calc);
+    const sortable = !readOnly && !c.noSort && (c.sortValue || !c.calc);
     const th = el('th', { class: [c.r ? 'r' : '', sortable ? 'sortable' : ''].join(' ').trim(), scope: 'col' });
     th.innerHTML = `${esc(c.label)}<span class="sort-ind"></span> ${c.tip ? TIP(c.tip) : ''}`;
     if (sortable) {
@@ -1054,6 +1054,7 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
     tb.appendChild(tr);
   }
   if (entries.length) {
+    let lastOrderSig = null;
     bind(tb, (n, R) => {
       let order = entries.map((e, k) => k);
       if (st.sort) {
@@ -1066,6 +1067,13 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
       } else if (canReorder) {
         order.sort((a, b) => (M.num(entries[a].row.order) - M.num(entries[b].row.order)) || (a - b));
       } else return;
+      // Only touch the DOM when the order actually changed: reappending an
+      // already-correctly-placed row still detaches/reattaches it, which
+      // would steal focus from whatever the user is typing into on every
+      // keystroke (schedule() -> refresh() runs this bind after each edit).
+      const sig = order.join(',');
+      if (sig === lastOrderSig) return;
+      lastOrderSig = sig;
       order.forEach(k => n.appendChild(entries[k].tr));
       if (totalsRow) n.appendChild(totalsRow);
     });
