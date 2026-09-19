@@ -1,0 +1,19 @@
+{
+  "name": "dfinance-tooling",
+  "private": true,
+  "version": "1.4.0",
+  "description": "Dev tooling only (tests + lint) for the DFinance single-file app. index.html itself has no build step and no runtime dependencies of its own.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node tests/dfinance.test.js",
+    "lint": "eslint index.html"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-html": "^8.2.0",
+    "eslint-plugin-no-unsanitized": "^4.1.5",
+    "jsdom": "^30.1.0",
+    "xlsx": "0.18.5"
+  }
+}

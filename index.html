@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!--
+  Content-Security-Policy: restricts the app to first-party code plus the
+  two trusted hosts it actually depends on (jsDelivr for the on-demand
+  Excel library, Google Fonts for type). 'unsafe-inline' is needed for both
+  script-src and style-src because this app is intentionally a single
+  self-contained HTML file with inline <script>/<style> and inline style=""
+  attributes (progress bars, chart swatches) rather than a bundled,
+  hash/nonce-able build — so this policy does not stop inline-script
+  injection, but it does stop the page from ever loading a script, stylesheet,
+  font, image, or frame from any host other than the ones listed, and blocks
+  it being framed or submitting forms elsewhere. A stricter script-src (no
+  'unsafe-inline') would require splitting the inline code into external
+  files with a build step — tracked separately as a larger architecture
+  change, not part of this fix.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'; worker-src 'self'">
 <script>
 /* Apply the saved theme before first paint so there is no flash of the wrong theme. */
 (function () {
@@ -83,7 +99,7 @@ button,input,select{font:inherit;color:inherit}
 .top .wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px}
 .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;margin-right:auto}
 .brand svg{flex:none}
-.brand .wordmark{letter-spacing:-.01em}
+.brand .wordmark{letter-spacing:-.01em;margin:0;font:inherit;display:inline;font-weight:inherit}
 .brand b{color:var(--gold-hi);font-weight:800}
 .brand .savestate{font-family:var(--body)}
 .savestate{font-family:var(--body);font-size:13px;font-weight:400;letter-spacing:0;color:rgba(255,255,255,.78);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:12px}
@@ -121,6 +137,12 @@ button,input,select{font:inherit;color:inherit}
 .pop .row{display:flex;gap:8px;flex-wrap:wrap}
 .pop hr{border:0;border-top:1px solid var(--line-2);margin:12px 0}
 .pop p{font-size:13px;color:var(--muted);margin:0 0 10px}
+.setgroup{border:0;margin:0 0 16px;padding:0;min-width:0}
+.setgroup legend{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:0 0 8px;width:100%}
+.setnote{margin:-4px 0 14px}
+.setgroup-adv{border-top:1px solid var(--line-2);padding-top:12px}
+.setgroup-adv summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:4px 0;list-style:revert}
+.setgroup-adv[open] summary{margin-bottom:10px}
 .settings .pop{max-height:min(72vh,620px);max-height:min(72vh,620px,calc(100vh - 210px - env(safe-area-inset-bottom)));overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #backup .row{display:grid;gap:8px}
 #backup .btn{width:100%;cursor:pointer;font-size:15px}
@@ -143,10 +165,10 @@ button,input,select{font:inherit;color:inherit}
 main{padding:28px 0 60px}
 .panel[hidden]{display:none}
 .page-head{margin-bottom:22px}
-.page-head h1{font-family:var(--display);font-size:clamp(28px,4vw,38px);line-height:1.1;letter-spacing:-.02em;margin:0 0 6px;color:var(--accent)}
+.page-head h2{font-family:var(--display);font-size:clamp(28px,4vw,38px);line-height:1.1;letter-spacing:-.02em;margin:0 0 6px;color:var(--accent)}
 .page-head p{margin:0;color:var(--muted);max-width:66ch}
-h2{font-family:var(--display);font-size:22px;letter-spacing:-.01em;margin:0 0 4px;color:var(--accent)}
-h3{font-family:var(--display);font-size:17px;margin:0 0 10px;color:var(--ink)}
+h3{font-family:var(--display);font-size:22px;letter-spacing:-.01em;margin:0 0 4px;color:var(--accent)}
+h4{font-family:var(--display);font-size:17px;margin:0 0 10px;color:var(--ink)}
 .sub{color:var(--muted);font-size:15px;margin:0 0 14px;max-width:70ch}
 .block{margin-top:36px}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
@@ -159,6 +181,11 @@ h3{font-family:var(--display);font-size:17px;margin:0 0 10px;color:var(--ink)}
 .swatch.calc{background:var(--surface);border-color:var(--line)}
 
 /* ---------- hero ---------- */
+.firstrun{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+.firstrun h3{margin:0 0 6px;font-size:19px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.firstrun p{margin:0 0 14px;color:var(--muted)}
+.firstrun-actions{display:flex;gap:10px;flex-wrap:wrap}
 .hero{padding:6px 0 4px}
 .hero .when{font-size:15px;color:var(--muted);margin:0 0 8px}
 .hero-line{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.6vw,36px);line-height:1.2;letter-spacing:-.02em;margin:0;max-width:30ch;color:var(--ink)}
@@ -262,6 +289,7 @@ table.ed td.drag{width:44px;padding-left:6px !important;padding-right:0}
 table.ed tr.dragging{position:relative;z-index:5;box-shadow:0 6px 18px var(--shadow);background:var(--surface)}
 table.ed tr.drag-over td{border-top:2px solid var(--accent)}
 .tbl-controls .tbl-sort{max-width:220px}
+.drag-lock-note{margin:0 0 10px;font-size:13px;color:var(--muted)}
 
 /* ---------- tactile press feedback (tap-highlight is disabled, so we supply our own) ---------- */
 .btn:active, .del:active, .iconbtn:active, .tab:active, .seg button:active, .tipbtn:active{transform:scale(.96)}
@@ -411,7 +439,7 @@ table.ed tr[hidden]{display:none !important}
   <div class="wrap">
     <div class="brand">
       <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="15" width="5" height="9" rx="1.6" fill="#AA7C1A"/><rect x="11.5" y="9" width="5" height="15" rx="1.6" fill="#D8A634"/><rect x="20" y="3" width="5" height="21" rx="1.6" fill="#F6CD6C"/><rect x="3" y="25" width="22" height="1.8" rx="0.9" fill="#5C4614"/></svg>
-      <span class="wordmark"><b>D</b>Finance</span>
+      <h1 class="wordmark"><b>D</b>Finance</h1>
       <span class="savestate" id="saveState" role="status" aria-live="polite" data-state="saved">All changes saved</span>
     </div>
     <div class="monthpick">
@@ -423,32 +451,39 @@ table.ed tr[hidden]{display:none !important}
     <details class="settings">
       <summary aria-label="Settings">Settings</summary>
       <div class="pop">
-        <div class="setlist">
-          <label class="setrow" for="themeToggle">
-            <span class="setrow-label">Light / Dark mode<em>Dark is easier on the eyes at night</em></span>
-            <span class="switch"><input type="checkbox" id="themeToggle" role="switch" aria-label="Dark mode"><i></i></span>
-          </label>
-        </div>
-        <label class="field"><span>Currency label (for example SAR, USD, EUR)</span><input class="in" id="currency" maxlength="6"></label>
-        <label class="field"><span>First month of your plan year (Cash Flow shows 12 months from here)</span><input class="in" type="month" id="planStart"></label>
-        <hr>
-        <p>Your numbers save themselves on this device as you type. Nothing is sent anywhere.</p>
-        <hr>
-        <div id="backup">
-          <p>Keep a copy you can move to another device, or bring in the Excel planner.</p>
-          <div class="row">
-            <button type="button" class="btn" id="exportJSON">Export backup (.json)</button>
-            <label class="btn">Import backup (.json)<input type="file" id="importJSON" accept=".json,application/json" hidden></label>
-            <button type="button" class="btn" id="exportXLSX">Export Excel (.xlsx)</button>
-            <label class="btn">Import Excel (.xlsx)<input type="file" id="importXLSX" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label>
+        <fieldset class="setgroup">
+          <legend>Appearance</legend>
+          <div class="setlist">
+            <label class="setrow" for="themeToggle">
+              <span class="setrow-label">Light / Dark mode<em>Dark is easier on the eyes at night</em></span>
+              <span class="switch"><input type="checkbox" id="themeToggle" role="switch" aria-label="Dark mode"><i></i></span>
+            </label>
           </div>
-          <div id="ioMsg" class="io-msg" role="alert" aria-live="polite" hidden></div>
-        </div>
-        <hr>
-        <div class="row">
-          <button type="button" class="btn ghost" id="resetSample">Show example numbers</button>
-          <button type="button" class="btn ghost" id="resetBlank">Start with a blank plan</button>
-        </div>
+        </fieldset>
+        <fieldset class="setgroup">
+          <legend>Plan settings</legend>
+          <label class="field"><span>Currency label (for example SAR, USD, EUR)</span><input class="in" id="currency" maxlength="6"></label>
+          <label class="field"><span>First month of your plan year (Cash Flow shows 12 months from here)</span><input class="in" type="month" id="planStart"></label>
+        </fieldset>
+        <p class="setnote">Your numbers save themselves on this device as you type. Nothing is sent anywhere.</p>
+        <details class="setgroup-adv">
+          <summary>Backup, import &amp; reset</summary>
+          <div id="backup">
+            <p>Keep a copy you can move to another device, or bring in the Excel planner.</p>
+            <div class="row">
+              <button type="button" class="btn" id="exportJSON">Export backup (.json)</button>
+              <label class="btn">Import backup (.json)<input type="file" id="importJSON" accept=".json,application/json" hidden></label>
+              <button type="button" class="btn" id="exportXLSX">Export Excel (.xlsx)</button>
+              <label class="btn">Import Excel (.xlsx)<input type="file" id="importXLSX" accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label>
+            </div>
+            <div id="ioMsg" class="io-msg" role="alert" aria-live="polite" hidden></div>
+            <hr>
+            <div class="row">
+              <button type="button" class="btn ghost" id="resetSample">Show example numbers</button>
+              <button type="button" class="btn ghost" id="resetBlank">Start with a blank plan</button>
+            </div>
+          </div>
+        </details>
       </div>
     </details>
   </div>
@@ -459,7 +494,7 @@ table.ed tr[hidden]{display:none !important}
   <div class="wrap">
     <div class="legend-key" style="margin:0 0 8px"><span><i class="swatch"></i>Yellow boxes are yours to type in</span><span><i class="swatch calc"></i>Everything else is worked out for you</span><span><span class="tipbtn" aria-hidden="true">?</span>Tap for a plain-language explanation</span></div>
     <div>Your numbers save automatically on this device. Estimates, not financial advice. Growth and payoff dates assume things carry on as they are today.</div>
-    <div class="version">DFinance v1.1</div>
+    <div class="version">DFinance v1.4</div>
   </div>
 </footer>
 <div id="tipbox" role="tooltip"></div>
@@ -473,6 +508,11 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 <script>
 // ---------- finance model: mirrors Personal_Finance_Planner.xlsx formulas ----------
 const M = (() => {
+  // Coalesces blank/invalid to 0 — used throughout calculations below, where
+  // a not-yet-filled-in field should behave as zero in a sum. This is a
+  // different contract from the top-level toNum()/toPct() (used for
+  // import/export), which preserve "blank" as '' rather than 0, so a blank
+  // cell stays blank instead of being overwritten with a literal zero.
   const num = v => (v === '' || v === null || v === undefined || isNaN(+v)) ? 0 : +v;
   const has = v => !(v === '' || v === null || v === undefined);
   // dates as "YYYY-MM-DD"; months as "YYYY-MM"
@@ -960,7 +1000,23 @@ function toast(msg, opts = {}) {
   const close = () => { if (done) return; done = true; t.classList.add('out'); setTimeout(() => t.remove(), 160); };
   if (opts.action) {
     const b = el('button', { type: 'button' }, esc(opts.action));
-    b.addEventListener('click', () => { close(); opts.onAction && opts.onAction(); });
+    b.addEventListener('click', () => {
+      close();
+      opts.onAction && opts.onAction();
+      // Undo often rebuilds the panel the button just vanished from; if
+      // that leaves focus stranded on <body>, land it on the main content
+      // instead of leaving a keyboard user at the very top of the page.
+      requestAnimationFrame(() => {
+        if (document.activeElement === document.body) {
+          const main = $('main');
+          if (main) {
+            main.setAttribute('tabindex', '-1');
+            main.focus({ preventScroll: true });
+            main.addEventListener('blur', () => main.removeAttribute('tabindex'), { once: true });
+          }
+        }
+      });
+    });
     t.appendChild(b);
   }
   const x = el('button', { type: 'button', class: 'toast-close', 'aria-label': 'Dismiss' }, '\u00d7');
@@ -1038,9 +1094,18 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
     }
     wrap.appendChild(controls);
   }
+  let dragLockNote = null;
+  if (canReorder) {
+    // The drag handle's disabled reason was only in its title attribute,
+    // which touch devices never show — a plain visible line works on any
+    // input method.
+    dragLockNote = el('p', { class: 'drag-lock-note', hidden: true }, 'Clear search, filters and sorting to drag rows into a new order.');
+    wrap.appendChild(dragLockNote);
+    bind(dragLockNote, () => { dragLockNote.hidden = !(st.sort || tblFilterActive(st, filters)); });
+  }
 
   const tw = el('div', { class: 'tbl-wrap' });
-  const t = el('table', { class: 'ed' });
+  const t = el('table', { class: 'ed', 'data-table': name });
   const thead = el('thead');
   const headTr = el('tr');
   if (canReorder) headTr.appendChild(el('th', { class: 'drag-col', 'aria-label': '' }));
@@ -1065,8 +1130,13 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
   t.appendChild(thead);
   const tb = el('tbody');
   const entries = [];
-  function wireDrag(handle, tr, i) {
-    bind(handle, () => { const locked = !!st.sort || tblFilterActive(st, filters); handle.disabled = locked; handle.title = locked ? 'Clear search, filters and sort to reorder' : 'Drag to reorder'; });
+  function wireDrag(handle, tr, i, row) {
+    bind(handle, () => {
+      const locked = !!st.sort || tblFilterActive(st, filters);
+      handle.disabled = locked;
+      handle.title = locked ? 'Clear search, filters and sort to reorder' : 'Drag to reorder, or press Alt+Up / Alt+Down';
+      handle.setAttribute('aria-label', locked ? 'Reorder (unavailable while searching, filtering or sorted)' : 'Reorder this row. Drag, or press Alt+Up or Alt+Down.');
+    });
     handle.addEventListener('pointerdown', e => {
       if (handle.disabled) return;
       e.preventDefault();
@@ -1097,6 +1167,23 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
     });
+    // Keyboard-only / switch-access alternative to pointer dragging: the
+    // handle is a real <button>, so Alt+Up/Alt+Down move the row one step
+    // and commit immediately, mirroring the pointer-drag commit path.
+    handle.addEventListener('keydown', e => {
+      if (handle.disabled || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const at = rows.indexOf(row);
+      const to = at + (e.key === 'ArrowUp' ? -1 : 1);
+      if (at === -1 || to < 0 || to >= rows.length) return;
+      rows.splice(at, 1); rows.splice(to, 0, row);
+      rows.forEach((r, pos) => { r.order = pos; });
+      onStructure();
+      const newTable = $(`table.ed[data-table="${CSS.escape(name)}"]`);
+      const nh = newTable && $$('.draghandle', newTable)[to];
+      if (nh) nh.focus();
+      toast(`Moved to position ${to + 1} of ${rows.length}`, { duration: 2000 });
+    });
   }
   rows.forEach((row, i) => {
     const tr = el('tr');
@@ -1105,7 +1192,7 @@ function table({ rows, cols, name, blank, addLabel, rowClass, totals, filter, on
       const td = el('td', { class: 'drag', 'data-label': '' });
       const h = el('button', { type: 'button', class: 'draghandle', 'aria-label': 'Drag to reorder' }, '\u2807');
       td.appendChild(h); tr.appendChild(td);
-      wireDrag(h, tr, i);
+      wireDrag(h, tr, i, row);
     }
     cols.forEach((c, ci) => {
       const td = el('td', { 'data-label': c.label, class: [c.calc ? 'c' : '', c.r ? 'r' : '', c.span ? 'span' : '', ci === 0 ? 'first' : ''].join(' ').trim() });
@@ -1351,7 +1438,7 @@ const PANELS = [
   ['dashboard', 'Dashboard'], ['income', 'Income'], ['expenses', 'Expenses'], ['loans', 'Loans'], ['savings', 'Savings'],
   ['investments', 'Investments'], ['networth', 'Net Worth'], ['goals', 'Goals'], ['cashflow', 'Cash Flow'],
 ];
-function head(title, text) { return `<div class="page-head"><h1>${title}</h1><p>${text}</p></div>`; }
+function head(title, text) { return `<div class="page-head"><h2>${title}</h2><p>${text}</p></div>`; }
 function fig(label, fn, tip) { const d = el('div', { class: 'fig' }, `<div class="lab">${label} ${tip ? TIP(tip) : ''}</div><div class="val num"></div>`); bind($('.val', d), fn); return d; }
 function figs(...items) { const d = el('div', { class: 'figs' }); items.forEach(i => d.appendChild(i)); return d; }
 const rerender = id => () => { render(id); markDirty(); refresh(); };
@@ -1359,6 +1446,15 @@ const rerender = id => () => { render(id); markDirty(); refresh(); };
 const RENDER = {
   dashboard(p) {
     p.innerHTML = `
+      <h2 class="sr-only">Dashboard</h2>
+      <section class="firstrun" data-b="firstrun" hidden>
+        <h3>Let's get your numbers in</h3>
+        <p>Your dashboard fills in as you add real numbers. Start with your income, then your regular spending — everything else here builds on those two.</p>
+        <div class="firstrun-actions">
+          <button type="button" class="btn" data-go="income">Add your income</button>
+          <button type="button" class="btn ghost" data-go="expenses">Add your spending</button>
+        </div>
+      </section>
       <section class="hero">
         <p class="when" data-b="when"></p>
         <p class="hero-line" data-b="line"></p>
@@ -1370,13 +1466,21 @@ const RENDER = {
       </section>
       <div class="stats" data-b="stats"></div>
       <div class="grid2 block">
-        <div class="box"><h3>Your net worth over time ${TIP(T.netWorth)}</h3><div class="chart" data-chart="networth"></div></div>
-        <div class="box"><h3>Where your money goes</h3><p class="sub small" data-b="piesub"></p><div class="chart" data-chart="pie"></div></div>
-        <div class="box"><h3>Money in vs money going out</h3><p class="sub small">Each month of your plan year.</p><div class="chart" data-chart="cashflow"></div></div>
-        <div class="box"><h3>Goal progress</h3><div class="progress-list" data-b="goals"></div></div>
+        <div class="box"><h4>Your net worth over time ${TIP(T.netWorth)}</h4><div class="chart" data-chart="networth"></div></div>
+        <div class="box"><h4>Where your money goes</h4><p class="sub small" data-b="piesub"></p><div class="chart" data-chart="pie"></div></div>
+        <div class="box"><h4>Money in vs money going out</h4><p class="sub small">Each month of your plan year.</p><div class="chart" data-chart="cashflow"></div></div>
+        <div class="box"><h4>Goal progress</h4><div class="progress-list" data-b="goals"></div></div>
       </div>
-      <div class="box block"><h3>Budget check <span class="muted small" data-b="budgetmonth"></span></h3><div class="progress-list two" data-b="budget"></div></div>`;
+      <div class="box block"><h4>Budget check <span class="muted small" data-b="budgetmonth"></span></h4><div class="progress-list two" data-b="budget"></div></div>`;
     const B = k => $(`[data-b="${k}"]`, p);
+    $$('[data-go]', p).forEach(b => b.addEventListener('click', () => showTab(b.dataset.go)));
+    bind(B('firstrun'), (n, R) => {
+      const fresh = R.dashboard.moneyIn === 0 && !S.loans.length && !S.holdings.length && !S.goals.length && !S.log.length &&
+        !S.pots.some(pt => M.num(pt.balance) || M.num(pt.deposit)) &&
+        !S.budget.some(b => M.num(b.budget)) &&
+        !Object.values(S.networth).some(v => M.num(v));
+      n.hidden = !fresh;
+    });
     bind(B('when'), (n, R) => { n.textContent = R.dashboard.inPlanYear ? `Your numbers for ${fmon(R.RM, true)}` : `${fmon(R.RM, true)} is outside your plan year, so these are typical monthly figures.`; });
     bind(B('line'), (n, R) => {
       const D = R.dashboard, out = D.spending + D.loanPay, m = MONTHS[+R.RM.slice(5, 7) - 1];
@@ -1453,7 +1557,7 @@ const RENDER = {
       ],
       totals: { typ: R => fm(R.income.typicalMonthly) },
     }));
-    const box = el('div', { class: 'box block' }, '<h3>Typical monthly income by kind</h3><div class="progress-list"></div>');
+    const box = el('div', { class: 'box block' }, '<h4>Typical monthly income by kind</h4><div class="progress-list"></div>');
     bind($('.progress-list', box), (n, R) => {
       const e = Object.entries(R.income.byKind).filter(([, v]) => v > 0), tot = R.income.typicalMonthly;
       n.innerHTML = e.length ? e.map(([k, v]) => `<div class="progress-item"><div class="top-line"><span class="name">${esc(k)}</span><span class="num">${fm(v)} ${cur()}</span></div>${barHTML(tot ? v / tot : 0, C.income)}</div>`).join('') : '<p class="empty">Regular income will show here.</p>';
@@ -1469,7 +1573,7 @@ const RENDER = {
       fig('Left to spend', (n, R) => n.innerHTML = `<span class="${R.expenses.totLeft < 0 ? 'neg' : ''}">${fm(R.expenses.totLeft)}</span><small> ${cur()}</small>`),
       fig('Areas over budget', (n, R) => n.innerHTML = `<span class="${R.expenses.overCount ? 'neg' : 'pos'}">${R.expenses.overCount}</span>`, T.pctUsed),
     ));
-    const h = el('div', {}, '<h2>Your monthly budget</h2><p class="sub" data-b="m"></p>');
+    const h = el('div', {}, '<h3>Your monthly budget</h3><p class="sub" data-b="m"></p>');
     bind($('[data-b="m"]', h), (n, R) => n.textContent = `"Spent this month" shows ${fmon(R.RM, true)}. Change the month at the top of the page.`);
     p.appendChild(h);
     p.appendChild(table({
@@ -1489,11 +1593,11 @@ const RENDER = {
       ],
       totals: { budget: R => fm(R.expenses.totBudget), spent: R => fm(R.expenses.totSpent), left: R => `<span class="${R.expenses.totLeft < 0 ? 'neg' : ''}">${fm(R.expenses.totLeft)}</span>`, pct: R => fp(R.expenses.totPct), status: R => pill(R.expenses.totStatus) },
     }));
-    const fv = el('div', { class: 'box block' }, `<h3>Fixed vs variable ${TIP(T.fixed)}</h3><div class="kv" data-b="kv"></div>`);
+    const fv = el('div', { class: 'box block' }, `<h4>Fixed vs variable ${TIP(T.fixed)}</h4><div class="kv" data-b="kv"></div>`);
     bind($('[data-b="kv"]', fv), (n, R) => { const E = R.expenses; n.innerHTML = `<div>Fixed costs: budget</div><div class="num">${fm(E.fixedBudget)}</div><div>Fixed costs: spent this month</div><div class="num">${fm(E.fixedSpent)}</div><div>Variable costs: budget</div><div class="num">${fm(E.varBudget)}</div><div>Variable costs: spent this month</div><div class="num">${fm(E.varSpent)}</div>`; });
     p.appendChild(fv);
 
-    const lh = el('div', { class: 'block' }, `<h2>Spending log</h2><p class="sub">Write down what you spend. Each entry is added to its spending area for that month.</p>`);
+    const lh = el('div', { class: 'block' }, `<h3>Spending log</h3><p class="sub">Write down what you spend. Each entry is added to its spending area for that month.</p>`);
     const seg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Which entries to show' });
     [['month', 'This month only'], ['all', 'All entries']].forEach(([k, l]) => seg.appendChild(el('button', { type: 'button', 'aria-pressed': String(UI.logFilter === k), onclick: (e) => { UI.logFilter = k; const t = e.currentTarget; $$('button', seg).forEach(b => b.setAttribute('aria-pressed', String(b === t))); refresh(); } }, l)));
     lh.appendChild(seg);
@@ -1556,7 +1660,7 @@ const RENDER = {
       totals: { amount: R => fm(R.loans.totBorrowed), tot: R => fm(R.loans.totMonthly), owed: R => fm(R.loans.totOwed), is: R => fm(R.loans.totSaved) },
     }));
 
-    const sec = el('div', { class: 'block' }, `<h2>What paying extra does</h2><p class="sub">Pick a loan and try different extra amounts. The whole plan updates as you go.</p>`);
+    const sec = el('div', { class: 'block' }, `<h3>What paying extra does</h3><p class="sub">Pick a loan and try different extra amounts. The whole plan updates as you go.</p>`);
     const pick = el('div', { class: 'box' });
     const selRow = el('label', { class: 'small', style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, '<span>Loan to look at</span>');
     const sel = input({ key: 'scheduleLoan', label: 'Loan to look at', type: 'select', options: () => S.loans.map(l => l.name).filter(Boolean) }, S.settings, 'settings.scheduleLoan');
@@ -1588,7 +1692,7 @@ const RENDER = {
       const tin = $(`[data-path="loans.${idx}.extra"]`); if (tin) tin.value = S.loans[idx].extra;
       schedule();
     });
-    const ch = el('div', { style: 'margin-top:18px' }, '<h3>What you owe over time</h3><div class="chart" data-chart="loan"></div>');
+    const ch = el('div', { style: 'margin-top:18px' }, '<h4>What you owe over time</h4><div class="chart" data-chart="loan"></div>');
     pick.appendChild(ch);
     sec.appendChild(pick);
 
@@ -1634,7 +1738,7 @@ const RENDER = {
       totals: { balance: R => fm(R.savings.totBal), deposit: R => fm(R.savings.totDep), in12: R => fm(R.savings.tot12) },
     }));
     const box = el('div', { class: 'grid2 block' });
-    const left = el('div', { class: 'box' }, `<h3>Emergency fund check ${TIP(T.ef)}</h3>`);
+    const left = el('div', { class: 'box' }, `<h4>Emergency fund check ${TIP(T.ef)}</h4>`);
     const f1 = el('label', { class: 'small', style: 'display:grid;gap:4px;margin-bottom:10px' }, '<span>Which pot is your emergency fund?</span>');
     f1.appendChild(input({ key: 'efPot', label: 'Emergency fund pot', type: 'select', allowEmpty: true, emptyLabel: 'Pick a pot', options: () => S.pots.map(x => x.name).filter(Boolean) }, S.settings, 'settings.efPot'));
     const f2 = el('label', { class: 'small', style: 'display:grid;gap:4px;margin-bottom:14px' }, '<span>Months of costs you want covered (most people aim for 3 to 6; choose 6 if your income is irregular)</span>');
@@ -1647,7 +1751,7 @@ const RENDER = {
         ['Months to reach it at your current deposit', e.toReach === null ? '<span class="warn">Add a monthly deposit</span>' : e.toReach], ['Expected to be fully funded by', fmon(e.fundedBy, true) || '–']]
         .map(([a, b]) => `<div class="lab">${a}</div><div class="num">${b}</div>`).join('');
     });
-    const right = el('div', { class: 'box' }, '<h3>How long you could cover your bills</h3><div data-b="ef"></div>');
+    const right = el('div', { class: 'box' }, '<h4>How long you could cover your bills</h4><div data-b="ef"></div>');
     bind($('[data-b="ef"]', right), (n, R) => {
       const e = R.savings.ef, c = e.months < 3 ? 'neg' : e.months < M.num(S.settings.efMonths) ? 'warn' : 'pos';
       n.innerHTML = `<div class="fig"><div class="val num ${c}" style="font-size:44px">${e.months.toFixed(1)}<small>months</small></div></div>
@@ -1691,7 +1795,7 @@ const RENDER = {
       ],
       totals: { contribution: R => fm(R.investments.totContrib), putIn: R => fm(R.investments.totIn), value: R => fm(R.investments.totValue), gain: R => `<span class="${signCls(R.investments.totGain)}">${fm(R.investments.totGain)}</span>`, gainPct: R => fp(R.investments.totGainPct, 1), in10: R => fm(R.investments.totIn10), growth: R => `avg ${fp(R.investments.avgGrowth, 1)}` },
     }));
-    const sec = el('div', { class: 'block' }, '<h2>What your investments could grow to</h2><p class="sub">Three guesses side by side, so you see a range instead of one number. These are estimates, not promises. Real returns rise and fall from year to year.</p>');
+    const sec = el('div', { class: 'block' }, '<h3>What your investments could grow to</h3><p class="sub">Three guesses side by side, so you see a range instead of one number. These are estimates, not promises. Real returns rise and fall from year to year.</p>');
     const box = el('div', { class: 'box' });
     const sc = el('div', { style: 'display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px' });
     ['Cautious growth per year', 'Middle growth per year', 'Hopeful growth per year'].forEach((l, j) => {
@@ -1711,7 +1815,7 @@ const RENDER = {
         { key: 'c', label: 'If growth is hopeful', r: true, calc: (r, i, R) => `<b>${fm(R.investments.projection[i]?.vals[2])}</b>` },
       ],
     }));
-    box.appendChild(el('div', { style: 'margin-top:18px' }, '<h3>Possible growth of your investments</h3><div class="chart" data-chart="invest"></div>'));
+    box.appendChild(el('div', { style: 'margin-top:18px' }, '<h4>Possible growth of your investments</h4><div class="chart" data-chart="invest"></div>'));
     sec.appendChild(box);
     p.appendChild(sec);
   },
@@ -1728,7 +1832,7 @@ const RENDER = {
     p.appendChild(top);
     const g = el('div', { class: 'grid2' });
     const mk = (title, items, totalFn) => {
-      const b = el('div', { class: 'box' }, `<h3>${title}</h3>`);
+      const b = el('div', { class: 'box' }, `<h4>${title}</h4>`);
       const kv = el('div', { class: 'kv', style: 'align-items:center' });
       items.forEach(([label, key, linkFn, note]) => {
         kv.appendChild(el('div', { class: 'lab' }, `<span>${label}<br><span class="muted small">${note}</span></span>`));
@@ -1751,7 +1855,7 @@ const RENDER = {
       ['Money owed to family or friends', 'family', null, 'Type it in'], ['Other debts', 'otherOwe', null, 'Type it in'],
     ], R => R.networth.owe));
     p.appendChild(g);
-    const sec = el('div', { class: 'block' }, '<h2>Month by month</h2><p class="sub">At the end of each month, record your totals. This builds your trend.</p>');
+    const sec = el('div', { class: 'block' }, '<h3>Month by month</h3><p class="sub">At the end of each month, record your totals. This builds your trend.</p>');
     const b = el('div', { class: 'box', style: 'margin-bottom:16px' }, '<div class="chart" data-chart="networth"></div>');
     sec.appendChild(b);
     const rec = el('button', { type: 'button', class: 'btn solid', onclick: () => {
@@ -1822,7 +1926,7 @@ const RENDER = {
       fig('Left over this year', (n, R) => n.innerHTML = `<span class="${signCls(R.cashflow.total.left)}">${fm(R.cashflow.total.left)}</span><small> ${cur()}</small>`, T.leftOver),
       fig('Share left over', (n, R) => n.textContent = fp(R.cashflow.total.share), T.share),
     ));
-    p.appendChild(el('div', { class: 'box', style: 'margin-bottom:20px' }, '<h3>Money in vs money going out</h3><div class="chart" data-chart="cashflow"></div>'));
+    p.appendChild(el('div', { class: 'box', style: 'margin-bottom:20px' }, '<h4>Money in vs money going out</h4><div class="chart" data-chart="cashflow"></div>'));
     const rows = Array.from({ length: 12 }, (_, i) => ({ i }));
     const C = (i, R) => R.cashflow.months[i];
     const money = (k, bold) => (r, i, R) => { const v = C(i, R)[k]; return bold ? `<b>${fm(v)}</b>` : fm(v); };
@@ -1851,7 +1955,9 @@ const RENDER = {
   },
 };
 
-function render(id) { const p = $(`#panel-${id}`); p.innerHTML = ''; RENDER[id](p); }
+let renderedTabs = new Set();
+function render(id) { const p = $(`#panel-${id}`); p.innerHTML = ''; RENDER[id](p); renderedTabs.add(id); }
+function ensureRendered(id) { if (!renderedTabs.has(id)) render(id); }
 
 /* ---------------- shell ---------------- */
 function buildShell() {
@@ -1868,6 +1974,10 @@ function buildShell() {
 }
 function showTab(id) {
   UI.tab = id;
+  // Panels are only built the first time they're actually opened: each one
+  // registers its own calc-cell bindings, which would otherwise all run on
+  // every keystroke app-wide even while hidden (see refresh()).
+  ensureRendered(id);
   PANELS.forEach(([pid]) => { $(`#tab-${pid}`).setAttribute('aria-selected', String(pid === id)); $(`#panel-${pid}`).hidden = pid !== id; });
   const t = $(`#tab-${id}`), strip = t.parentElement;
   if (strip.scrollWidth > strip.clientWidth) {
@@ -1877,7 +1987,7 @@ function showTab(id) {
   window.scrollTo({ top: 0 });
   refresh();
 }
-function renderAll() { PANELS.forEach(([id]) => render(id)); syncSettings(); refresh(); }
+function renderAll() { renderedTabs.clear(); ensureRendered(UI.tab); syncSettings(); refresh(); }
 function syncSettings() {
   $('#reviewMonth').value = S.settings.reviewMonth.slice(0, 7);
   $('#planStart').value = S.settings.planStart.slice(0, 7);
@@ -1899,15 +2009,25 @@ function blankState() {
 /* ---------------- backup: import & export ---------------- */
 const uid = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-const XLSX_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+// Loaded from jsDelivr's npm mirror (SheetJS stopped publishing past 0.18.5 to
+// npm, so this is the newest version available through an npm-backed CDN).
+// The integrity hash below was computed locally from the npm registry
+// tarball (sha1 16711b9113c848076b8a177022799ad356eba7d0, verified against
+// registry.npmjs.org) — if a CDN ever serves different bytes, the browser
+// refuses to run the script and loadXLSX() rejects (fail closed).
+const XLSX_SRC = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+const XLSX_SRI = 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw';
 let xlsxLoading = null;
 function loadXLSX() {
   if (window.XLSX) return Promise.resolve(window.XLSX);
   if (!xlsxLoading) xlsxLoading = new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = XLSX_SRC; s.async = true;
+    s.integrity = XLSX_SRI;
+    s.crossOrigin = 'anonymous';
+    s.referrerPolicy = 'no-referrer';
     s.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error('missing'));
-    s.onerror = () => { xlsxLoading = null; s.remove(); rej(new Error('offline')); };
+    s.onerror = () => { xlsxLoading = null; s.remove(); rej(new Error('blocked')); };
     document.head.appendChild(s);
   });
   return xlsxLoading;
@@ -1963,6 +2083,11 @@ function toDate(v) {
   const d = new Date(s);
   return isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// Import/export numeric coercion — preserves "blank" as '' rather than
+// coalescing to 0 (contrast with M.num inside the calculation engine above,
+// which deliberately treats blank as 0 for arithmetic). Used by conv{},
+// cellVal(), and validateBackup() so a blank spreadsheet/JSON field doesn't
+// get overwritten with a literal zero.
 function toNum(v) {
   if (typeof v === 'number') return isFinite(v) ? v : '';
   const s = String(v ?? '').replace(/[^0-9.\-]/g, '');
@@ -2036,24 +2161,28 @@ function readPairs(rows, spec) {
 function importWorkbook(XLSX, buf) {
   const wb = XLSX.read(buf, { type: 'array', cellDates: true });
   const next = JSON.parse(JSON.stringify(S));
-  const hit = [];
+  const hit = [], misses = [];
   const sheetsFor = al => wb.SheetNames.filter(n => al.some(a => norm(a) === norm(n)));
   SHEETS.forEach(spec => {
-    for (const sheetName of sheetsFor(spec.aliases)) {
+    const candidates = sheetsFor(spec.aliases);
+    if (!candidates.length) return;
+    for (const sheetName of candidates) {
       const rows = aoa(XLSX, wb.Sheets[sheetName]);
       const head = findHeader(rows, spec.cols);
-      if (!head) continue;
+      if (!head) { misses.push(`${spec.name}: found the "${sheetName}" tab but couldn't recognise its column headers.`); continue; }
       const data = readRows(rows, head, spec.cols);
-      if (!data.length) continue;
+      if (!data.length) { misses.push(`${spec.name}: found the "${sheetName}" tab but it had no usable rows.`); continue; }
       next[spec.key] = data;
-      hit.push(spec.name);
+      hit.push(`${spec.name} (${data.length} row${data.length === 1 ? '' : 's'})`);
       break;
     }
   });
   [ASSETS, LIABILITIES].forEach(spec => {
-    for (const sheetName of sheetsFor(spec.aliases)) {
+    const candidates = sheetsFor(spec.aliases);
+    if (!candidates.length) return;
+    for (const sheetName of candidates) {
       const got = readPairs(aoa(XLSX, wb.Sheets[sheetName]), spec);
-      if (!got) continue;
+      if (!got) { misses.push(`${spec.name}: found the "${sheetName}" tab but couldn't match its rows to known fields.`); continue; }
       Object.assign(next.networth, got);
       hit.push(spec.name);
       break;
@@ -2063,7 +2192,8 @@ function importWorkbook(XLSX, buf) {
   if (setSheet) {
     const rows = aoa(XLSX, wb.Sheets[setSheet]);
     const head = findHeader(rows, [['Setting', 'label', 'text'], ['Value', 'value', 'text']]);
-    if (head) {
+    if (!head) { misses.push('Settings: found the tab but couldn\'t recognise its columns.'); }
+    else {
       const by = {}; SETTINGS_ROWS.forEach(([l, k, t]) => { by[norm(l)] = [k, t]; by[norm(k)] = [k, t]; });
       let n = 0;
       for (let r = head.row + 1; r < rows.length; r++) {
@@ -2072,11 +2202,15 @@ function importWorkbook(XLSX, buf) {
         const v = conv[m[1]](row[head.map.value]);
         if (!isBlank(v)) { next.settings[m[0]] = v; n++; }
       }
-      if (n) hit.push('Settings');
+      if (n) hit.push(`Settings (${n} value${n === 1 ? '' : 's'})`); else misses.push('Settings: found the tab but none of its rows matched a known setting.');
     }
   }
-  if (!hit.length) throw new Error('No matching sheets');
-  return { next, hit };
+  if (!hit.length) {
+    const e = new Error('No matching sheets');
+    e.misses = misses;
+    throw e;
+  }
+  return { next, hit, misses };
 }
 
 function exportWorkbook(XLSX) {
@@ -2094,12 +2228,18 @@ function exportWorkbook(XLSX) {
     ws['!cols'] = cols.map(([label]) => ({ wch: Math.min(34, Math.max(12, label.length + 2)) }));
     return ws;
   };
+  // Guard against CSV/Excel "formula injection": a cell value that starts
+  // with =, +, -, @ (or a tab/CR) can be interpreted as a formula by Excel
+  // or Sheets when the file is opened. Prefixing with a straight quote
+  // forces it to be read as plain text instead.
+  const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+  const safeText = v => { const s = String(v); return FORMULA_TRIGGER.test(s) ? "'" + s : s; };
   const cellVal = (row, key, type) => {
     const v = row[key];
     if (isBlank(v)) return '';
     if (type === 'date' || type === 'month') { const d = toDate(v); if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd || 1); }
     if (type === 'money' || type === 'num' || type === 'pct') { const n = toNum(v); return n === '' ? '' : n; }
-    return String(v);
+    return safeText(v);
   };
   SHEETS.forEach(spec => {
     const src = Array.isArray(S[spec.key]) ? S[spec.key] : [];
@@ -2114,7 +2254,7 @@ function exportWorkbook(XLSX) {
     ws['!cols'] = [{ wch: 34 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(wb, ws, spec.name);
   });
-  const sData = SETTINGS_ROWS.map(([label, key, type]) => ({ Setting: label, Value: type === 'num' ? toNum(S.settings[key]) : String(S.settings[key] ?? '') }));
+  const sData = SETTINGS_ROWS.map(([label, key, type]) => ({ Setting: label, Value: type === 'num' ? toNum(S.settings[key]) : safeText(S.settings[key] ?? '') }));
   const sws = XLSX.utils.json_to_sheet(sData, { header: ['Setting', 'Value'] });
   sws['!cols'] = [{ wch: 32 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, sws, 'Settings');
@@ -2144,15 +2284,70 @@ function applyState(next) {
   markDirty();
   saveNow();
 }
-function mergeJSON(parsed) {
+// Schema-validated backup import: every field is allow-listed against the
+// same specs used for Excel import (SHEETS / SETTINGS_ROWS / ASSETS /
+// LIABILITIES) and coerced to its expected type. Anything not on the
+// allow-list — unknown top-level sections, unknown row fields, wrong-shaped
+// values — is dropped rather than merged in, and reported back so the
+// import is never silent about what it skipped.
+function validateBackup(parsed) {
+  const warnings = [];
   const base = blankState();
-  const next = Object.assign(base, parsed);
-  next.settings = Object.assign(blankState().settings, parsed.settings || {});
-  next.networth = Object.assign(blankState().networth, parsed.networth || {});
-  ['income', 'budget', 'log', 'loans', 'pots', 'holdings', 'goals', 'history'].forEach(k => {
-    next[k] = Array.isArray(next[k]) ? next[k].map(r => (r && typeof r === 'object') ? { ...r, id: r.id || uid() } : r).filter(r => r && typeof r === 'object') : base[k];
+  const TOP_KEYS = ['settings', 'income', 'budget', 'log', 'loans', 'pots', 'holdings', 'networth', 'history', 'goals'];
+  const droppedTop = Object.keys(parsed).filter(k => !TOP_KEYS.includes(k));
+  if (droppedTop.length) warnings.push(`Ignored unrecognised section${droppedTop.length > 1 ? 's' : ''}: ${droppedTop.join(', ')}.`);
+
+  const next = blankState();
+
+  const settingsTypes = { ...Object.fromEntries(SETTINGS_ROWS.map(([, k, t]) => [k, t])), currency: 'text', scenarios: 'nums', years: 'nums' };
+  if (parsed.settings !== undefined) {
+    if (parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings)) {
+      const out = { ...base.settings }, dropped = [];
+      Object.keys(parsed.settings).forEach(k => {
+        const t = settingsTypes[k];
+        if (!t) { dropped.push(k); return; }
+        if (t === 'nums') { const arr = Array.isArray(parsed.settings[k]) ? parsed.settings[k].map(toNum).filter(n => n !== '') : null; if (arr && arr.length) out[k] = arr; }
+        else { const v = conv[t](parsed.settings[k]); if (!isBlank(v)) out[k] = v; }
+      });
+      next.settings = out;
+      if (dropped.length) warnings.push(`Ignored unrecognised setting${dropped.length > 1 ? 's' : ''}: ${dropped.join(', ')}.`);
+    } else warnings.push('Settings section was the wrong shape, so it was skipped.');
+  }
+
+  const nwKeys = [...ASSETS.rows, ...LIABILITIES.rows].map(([, k]) => k);
+  if (parsed.networth !== undefined) {
+    if (parsed.networth && typeof parsed.networth === 'object' && !Array.isArray(parsed.networth)) {
+      const out = { ...base.networth }, dropped = [];
+      Object.keys(parsed.networth).forEach(k => { if (nwKeys.includes(k)) out[k] = toNum(parsed.networth[k]); else dropped.push(k); });
+      next.networth = out;
+      if (dropped.length) warnings.push(`Ignored unrecognised net worth field${dropped.length > 1 ? 's' : ''}: ${dropped.join(', ')}.`);
+    } else warnings.push('Net worth section was the wrong shape, so it was skipped.');
+  }
+
+  SHEETS.forEach(spec => {
+    const raw = parsed[spec.key];
+    if (raw === undefined) return;
+    if (!Array.isArray(raw)) { warnings.push(`${spec.name}: expected a list, so it was skipped.`); return; }
+    const fieldTypes = Object.fromEntries(spec.cols.map(([, k, t]) => [k, t]));
+    const droppedFields = new Set();
+    let badRows = 0;
+    const rows = raw.map(r => {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) { badRows++; return null; }
+      const out = { id: (typeof r.id === 'string' && r.id) ? r.id : uid() };
+      Object.keys(r).forEach(k => {
+        if (k === 'id') return;
+        const t = fieldTypes[k];
+        if (!t) { droppedFields.add(k); return; }
+        out[k] = conv[t](r[k]);
+      });
+      return out;
+    }).filter(Boolean);
+    next[spec.key] = rows;
+    if (badRows) warnings.push(`${spec.name}: skipped ${badRows} row${badRows > 1 ? 's' : ''} that weren't in the right shape.`);
+    if (droppedFields.size) warnings.push(`${spec.name}: ignored unrecognised field${droppedFields.size > 1 ? 's' : ''}: ${[...droppedFields].join(', ')}.`);
   });
-  return next;
+
+  return { next, warnings };
 }
 
 function wireBackup() {
@@ -2169,12 +2364,17 @@ function wireBackup() {
     if (!/\.json$/i.test(f.name) && f.type !== 'application/json') { ioMsg('bad', 'That needs to be a .json backup file. Your numbers are unchanged.'); return; }
     try {
       const parsed = JSON.parse(await f.text());
-      if (!parsed || typeof parsed !== 'object' || (!parsed.settings && !Array.isArray(parsed.income))) throw new Error('shape');
-      applyState(mergeJSON(parsed));
-      ioMsg('ok', 'Backup restored. Everything is back the way you saved it.');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || (!parsed.settings && !Array.isArray(parsed.income))) throw new Error('shape');
+      const { next, warnings } = validateBackup(parsed);
+      applyState(next);
+      ioMsg('ok', warnings.length ? `Backup restored. A few things were skipped: ${warnings.join(' ')}` : 'Backup restored. Everything is back the way you saved it.');
     } catch (err) { ioMsg('bad', "That file couldn't be read as a money-plan backup. Your numbers are unchanged."); }
   });
   $('#exportXLSX').addEventListener('click', async () => {
+    // The Excel toolkit is fetched from jsDelivr on first use, then cached
+    // by the service worker for offline reuse — but that first fetch needs
+    // a connection, so say so upfront rather than let it fail silently.
+    if (!window.XLSX && !navigator.onLine) { ioMsg('bad', "You're offline, and the Excel toolkit hasn't been downloaded to this device yet. Connect once and it'll work offline after that."); return; }
     ioBusy(true, 'Building your Excel file\u2026');
     try {
       const XLSX = await loadXLSX();
@@ -2183,24 +2383,25 @@ function wireBackup() {
       ioBusy(false); ioMsg('ok', 'Excel file saved to your downloads.');
     } catch (err) {
       ioBusy(false);
-      ioMsg('bad', err.message === 'offline' ? 'Excel files need an internet connection the first time you use them. Reconnect and try again.' : "Couldn't build the Excel file. Your numbers are unchanged.");
+      ioMsg('bad', err.message === 'blocked' ? "Couldn't load the Excel toolkit safely (offline, blocked, or it failed a security check). Try again when you're online." : "Couldn't build the Excel file. Your numbers are unchanged.");
     }
   });
   $('#importXLSX').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
     if (!f) return;
     if (!/\.(xlsx|xlsm|xls)$/i.test(f.name)) { ioMsg('bad', 'That needs to be an Excel file (.xlsx). Your numbers are unchanged.'); return; }
+    if (!window.XLSX && !navigator.onLine) { ioMsg('bad', "You're offline, and the Excel toolkit hasn't been downloaded to this device yet. Connect once and it'll work offline after that."); return; }
     ioBusy(true, 'Reading your workbook\u2026');
     try {
       const XLSX = await loadXLSX();
-      const { next, hit } = importWorkbook(XLSX, await f.arrayBuffer());
+      const { next, hit, misses } = importWorkbook(XLSX, await f.arrayBuffer());
       applyState(next);
       ioBusy(false);
-      ioMsg('ok', `Brought in: ${hit.join(', ')}. Anything the workbook didn't cover was left as it was.`);
+      ioMsg('ok', `Brought in: ${hit.join(', ')}.${misses.length ? ` Skipped: ${misses.join(' ')}` : " Anything the workbook didn't cover was left as it was."}`);
     } catch (err) {
       ioBusy(false);
-      ioMsg('bad', err.message === 'offline' ? 'Excel files need an internet connection the first time you use them. Reconnect and try again.'
-        : err.message === 'No matching sheets' ? "None of that workbook's tabs matched the planner. Your numbers are unchanged."
+      ioMsg('bad', err.message === 'blocked' ? "Couldn't load the Excel toolkit safely (offline, blocked, or it failed a security check). Try again when you're online."
+        : err.message === 'No matching sheets' ? `None of that workbook's tabs matched the planner.${err.misses && err.misses.length ? ` ${err.misses.join(' ')}` : ''} Your numbers are unchanged.`
           : "That workbook couldn't be read. Your numbers are unchanged.");
     }
   });
@@ -2283,8 +2484,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#nextMonth').addEventListener('click', () => shiftMonth(1));
   wireTheme();
   wireBackup();
-  $('#resetSample').addEventListener('click', () => { if (confirm('Replace everything with the example numbers?')) { S = sampleState(); renderAll(); markDirty(); } });
-  $('#resetBlank').addEventListener('click', () => { if (confirm('Clear all your numbers and start with a blank plan?')) { S = blankState(); renderAll(); showTab('income'); markDirty(); } });
+  // Resetting is destructive (it replaces every number in the plan), so
+  // rather than a blocking confirm() dialog it applies immediately and
+  // offers an Undo — consistent with how row deletion works elsewhere.
+  $('#resetSample').addEventListener('click', () => {
+    const prev = S;
+    S = sampleState(); renderAll(); markDirty();
+    toast('Replaced with example numbers', { action: 'Undo', duration: 10000, onAction: () => { S = prev; renderAll(); markDirty(); } });
+  });
+  $('#resetBlank').addEventListener('click', () => {
+    const prev = S;
+    S = blankState(); renderAll(); showTab('income'); markDirty();
+    toast('Cleared — starting from a blank plan', { action: 'Undo', duration: 10000, onAction: () => { S = prev; renderAll(); markDirty(); } });
+  });
 
   // tooltips (tap-friendly: no hover-only behaviour)
   const box = $('#tipbox'); let tipOwner = null, touchMode = false;
@@ -2301,6 +2513,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { hide(); $$('details.settings[open]').forEach(d => d.open = false); } });
   window.addEventListener('scroll', hide, { passive: true });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawCharts, 120); });
+
+  // Offer a reload once a new service-worker version has installed, rather
+  // than silently swapping the app shell underneath the person on their next
+  // visit. navigator.serviceWorker.controller being set means this isn't the
+  // very first install, so the prompt only appears for genuine updates.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('A new version of DFinance is ready.', { action: 'Reload', duration: 20000, onAction: () => location.reload() });
+          }
+        });
+      });
+    }).catch(() => {});
+  }
 
   const had = await loadSaved();
   renderAll();

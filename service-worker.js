@@ -1,9 +1,12 @@
 /* DFinance service worker — cache-first app shell, works offline after the first load. */
-const VERSION = 'dfinance-v4';
+const VERSION = 'dfinance-v7';
 const SHELL = VERSION + '-shell';
 const RUNTIME = VERSION + '-runtime';
 
 const SHELL_FILES = [
+  // NOTE: these icon files must exist alongside index.html in the deployed
+  // build for the PWA install icon / apple-touch-icon to work — verify they
+  // are present in the deployment, not just referenced in manifest.json.
   './',
   './index.html',
   './manifest.json',
@@ -19,14 +22,32 @@ const SHELL_FILES = [
 const RUNTIME_HOSTS = [
   'fonts.googleapis.com',
   'fonts.gstatic.com',
-  'cdnjs.cloudflare.com',
+  'cdn.jsdelivr.net',
 ];
+
+// The app shell and manifest are required for offline use; the rest (icons)
+// are cosmetic — if one of those is missing, the app still works offline,
+// just without that icon.
+const REQUIRED_FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL);
-    // Add one by one so a single missing file can't fail the whole install.
-    await Promise.all(SHELL_FILES.map(url => cache.add(new Request(url, { cache: 'reload' })).catch(() => null)));
+    // Add one by one so a single missing file can't fail the whole install —
+    // but log every failure instead of silently swallowing it, so a missing
+    // file (especially a core one) is visible in devtools rather than just
+    // quietly leaving that one file uncached with no trace.
+    const results = await Promise.all(SHELL_FILES.map(async url => {
+      try { await cache.add(new Request(url, { cache: 'reload' })); return null; }
+      catch (err) { return { url, err }; }
+    }));
+    results.filter(Boolean).forEach(({ url, err }) => {
+      const required = REQUIRED_FILES.includes(url);
+      (required ? console.error : console.warn)(
+        `[service-worker] couldn't precache "${url}" — ${required ? 'this is a core file; offline support may be degraded.' : 'the app will still work, but this icon may be missing offline.'}`,
+        err
+      );
+    });
     await self.skipWaiting();
   })());
 });
