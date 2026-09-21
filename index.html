@@ -311,7 +311,22 @@ table.ed th.sortable:active{background:var(--accent-solid-2)}
 .toast .toast-close{font-size:18px;font-weight:400;padding:0 12px}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(8px)}}
-@media (max-width:720px){ .tabs{padding-bottom:max(env(safe-area-inset-bottom),10px)} .toast-wrap{bottom:calc(70px + env(safe-area-inset-bottom))} }
+@media (max-width:720px){ .tabs{padding-bottom:max(env(safe-area-inset-bottom),10px)} .toast-wrap{bottom:calc(70px + env(safe-area-inset-bottom))} .fab{bottom:calc(70px + env(safe-area-inset-bottom) + 14px)} dialog.quickadd{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-width:100%;border-radius:16px 16px 0 0;max-height:min(80dvh,600px)} }
+
+/* ---------- Expenses quick-add: floating action button + dialog ---------- */
+.fab{position:fixed;right:max(20px,calc(env(safe-area-inset-right) + 12px));bottom:24px;width:56px;height:56px;min-width:44px;min-height:44px;border-radius:50%;border:0;background:var(--accent);color:var(--paper);font-size:28px;line-height:1;cursor:pointer;box-shadow:0 8px 24px var(--shadow);z-index:45;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.fab:hover{background:var(--accent-solid-2)}
+.fab:active{transform:scale(.94)}
+.fab span{margin-top:-2px}
+dialog.quickadd{border:0;border-radius:16px;padding:0;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px var(--shadow);width:min(420px,92vw);max-height:min(600px,86dvh);display:flex;flex-direction:column}
+dialog.quickadd::backdrop{background:rgba(10,10,10,.55)}
+dialog.quickadd form{display:flex;flex-direction:column;min-height:0;flex:1}
+.quickadd-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px 8px}
+.quickadd-head h2{margin:0;font-size:19px}
+.quickadd-fields{padding:8px 18px 4px;overflow-y:auto;flex:1;min-height:0}
+.field-row{display:grid;gap:6px;margin-bottom:14px}
+.field-row label{font-size:13px;font-weight:700;color:var(--muted)}
+.quickadd-actions{display:flex;gap:10px;justify-content:flex-end;padding:12px 18px calc(18px + env(safe-area-inset-bottom));border-top:1px solid var(--line-2)}
 .btn{border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:16px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:var(--accent-soft)}
 .btn.solid{background:var(--accent-solid);color:var(--on-accent)}
@@ -497,6 +512,30 @@ table.ed tr[hidden]{display:none !important}
     <div class="version">DFinance v1.4</div>
   </div>
 </footer>
+<button type="button" id="quickAddFab" class="fab" aria-label="Add spending" hidden>
+  <span aria-hidden="true">+</span>
+</button>
+<dialog id="quickAddDialog" class="quickadd">
+  <form id="quickAddForm" novalidate>
+    <div class="quickadd-head">
+      <h2>Add spending</h2>
+      <button type="button" class="iconbtn" id="quickAddClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="quickadd-fields">
+      <div class="field-row"><label for="qaDate">Date</label><input class="in" type="date" id="qaDate"></div>
+      <div class="field-row"><label for="qaArea">Spending area</label><select class="in" id="qaArea"></select></div>
+      <div class="field-row"><label for="qaWhat">What was it?</label><input class="in w-wide" id="qaWhat" placeholder="e.g. Coffee"></div>
+      <div class="field-row">
+        <label for="qaAmount">Amount</label>
+        <span class="field"><input class="in" type="number" step="any" inputmode="decimal" min="0" id="qaAmount" placeholder="0"><p class="field-err" id="qaAmountErr" hidden></p></span>
+      </div>
+    </div>
+    <div class="quickadd-actions">
+      <button type="button" class="btn ghost" id="quickAddCancel">Cancel</button>
+      <button type="submit" class="btn" id="quickAddSave">Save</button>
+    </div>
+  </form>
+</dialog>
 <div id="tipbox" role="tooltip"></div>
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -1971,6 +2010,7 @@ function buildShell() {
     const ids = PANELS.map(x => x[0]); let i = ids.indexOf(UI.tab) + (e.key === 'ArrowRight' ? 1 : -1);
     i = (i + ids.length) % ids.length; showTab(ids[i]); $(`#tab-${ids[i]}`).focus();
   });
+  $('#quickAddFab').hidden = UI.tab !== 'expenses';
 }
 function showTab(id) {
   UI.tab = id;
@@ -1979,6 +2019,7 @@ function showTab(id) {
   // every keystroke app-wide even while hidden (see refresh()).
   ensureRendered(id);
   PANELS.forEach(([pid]) => { $(`#tab-${pid}`).setAttribute('aria-selected', String(pid === id)); $(`#panel-${pid}`).hidden = pid !== id; });
+  $('#quickAddFab').hidden = id !== 'expenses';
   const t = $(`#tab-${id}`), strip = t.parentElement;
   if (strip.scrollWidth > strip.clientWidth) {
     const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2407,6 +2448,60 @@ function wireBackup() {
   });
 }
 
+/* ---------------- Expenses quick-add (FAB + dialog) ----------------
+ * A persistent shortcut for the single most common action on the
+ * Expenses tab — logging one spending item — without scrolling to the
+ * spending log table. Fields are plain, bespoke inputs (not the generic
+ * table input() helper) so typing into the dialog doesn't call schedule()
+ * — and therefore doesn't flicker the "Saving…" indicator — until the
+ * entry is actually submitted. */
+function wireQuickAdd() {
+  const fab = $('#quickAddFab'), dlg = $('#quickAddDialog'), form = $('#quickAddForm');
+  const dateInput = $('#qaDate', form), areaSel = $('#qaArea', form), whatInput = $('#qaWhat', form), amountInput = $('#qaAmount', form), amountErr = $('#qaAmountErr', form);
+  if (!fab || !dlg) return;
+
+  function defaultDate() {
+    const now = new Date(), t = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return R.RM.slice(0, 7) === t ? `${t}-${String(now.getDate()).padStart(2, '0')}` : R.RM;
+  }
+  function resetForm() {
+    dateInput.value = defaultDate().slice(0, 10);
+    const opts = S.budget.map(b => b.name).filter(Boolean);
+    areaSel.innerHTML = `<option value="">${esc('Pick an area')}</option>` + opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    areaSel.value = '';
+    whatInput.value = '';
+    amountInput.value = '';
+    amountInput.classList.remove('invalid'); amountInput.removeAttribute('aria-invalid'); amountErr.hidden = true; amountErr.textContent = '';
+  }
+  fab.addEventListener('click', () => {
+    resetForm();
+    dlg.showModal();
+    amountInput.focus();
+  });
+  $('#quickAddClose').addEventListener('click', () => dlg.close());
+  $('#quickAddCancel').addEventListener('click', () => dlg.close());
+  amountInput.addEventListener('input', () => { amountInput.classList.remove('invalid'); amountInput.removeAttribute('aria-invalid'); amountErr.hidden = true; });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const amount = amountInput.value === '' ? '' : +amountInput.value;
+    if (amount === '' || !isFinite(amount) || amount <= 0) {
+      amountInput.classList.add('invalid'); amountInput.setAttribute('aria-invalid', 'true');
+      amountErr.textContent = 'Enter an amount more than 0'; amountErr.hidden = false;
+      amountInput.focus();
+      return;
+    }
+    const row = { date: dateInput.value || defaultDate(), area: areaSel.value, what: whatInput.value.trim(), amount };
+    S.log.unshift(row);
+    rerender('expenses')();
+    dlg.close();
+    const label = row.what || row.area || 'spending';
+    toast(`Added ${fm(amount)} for "${label}"`, {
+      action: 'Undo', onAction: () => { const at = S.log.indexOf(row); if (at > -1) S.log.splice(at, 1); rerender('expenses')(); },
+    });
+  });
+  dlg.addEventListener('close', resetForm);
+}
+
 /* ---------------- theme ---------------- */
 const THEME_KEY = 'dfinance-theme';
 function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
@@ -2484,6 +2579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#nextMonth').addEventListener('click', () => shiftMonth(1));
   wireTheme();
   wireBackup();
+  wireQuickAdd();
   // Resetting is destructive (it replaces every number in the plan), so
   // rather than a blocking confirm() dialog it applies immediately and
   // offers an Undo — consistent with how row deletion works elsewhere.
