@@ -336,6 +336,7 @@ table.ed th.sortable:active{background:var(--accent-solid-2)}
 .btn.solid:hover{background:var(--accent-solid-2)}
 .btn.ghost{border-color:transparent}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.box .seg{margin:2px 0 14px}
 .seg button{border:0;background:transparent;padding:6px 14px;cursor:pointer;font-size:15px;color:var(--muted);min-height:44px}
 .seg button[aria-pressed="true"]{background:var(--accent-solid);color:var(--on-accent)}
 
@@ -566,6 +567,8 @@ const M = (() => {
   const edate = (s, k) => { const { y, m } = ym(s); const t = y * 12 + (m - 1) + k; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}-01`; };
   const mdiff = (a, b) => { const A = ym(a), B = ym(b); return (A.y - B.y) * 12 + (A.m - B.m); }; // months from b to a
   const normDate = s => !has(s) ? '' : (String(s).length === 7 ? s + '-01' : String(s));
+  const addDays = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const ddiff = (a, b) => Math.round((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000); // days from b to a
 
   // Excel financial functions
   const PMT = (r, n, pv, fv = 0) => r === 0 ? -(pv + fv) / n : -(pv * Math.pow(1 + r, n) + fv) * r / (Math.pow(1 + r, n) - 1);
@@ -629,6 +632,37 @@ const M = (() => {
       logType: log.map(l => !has(l.area) ? '' : (bud.find(b => b.on && b.name === l.area)?.type || 'Not in budget')),
       overCount: bud.filter(b => b.status === 'Over budget').length,
     };
+
+    // ---------------- Spending trend (dashboard chart) — total logged
+    // spending per period, using the same S.log + amount totalling this
+    // module already uses for spentIn()/totSpent above, just bucketed by
+    // day/week/month instead of a single review month. Real "today" (not
+    // the review month) anchors the window, since this is a look back at
+    // what's actually been logged, independent of which month is being
+    // reviewed elsewhere in the app.
+    {
+      const validLog = log.filter(l => l.date);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const earliest = validLog.length ? validLog.reduce((mn, l) => l.date < mn ? l.date : mn, validLog[0].date) : todayStr;
+      const sumBetween = (from, to) => validLog.filter(l => l.date >= from && l.date <= to).reduce((a, l) => a + l.amt, 0);
+
+      const daysN = Math.min(30, Math.max(1, ddiff(todayStr, earliest) + 1));
+      const days = { keys: [], values: [] };
+      for (let i = daysN - 1; i >= 0; i--) { const d = addDays(todayStr, -i); days.keys.push(d); days.values.push(sumBetween(d, d)); }
+
+      const weeksAvail = Math.max(1, Math.ceil((ddiff(todayStr, earliest) + 1) / 7));
+      const weeksN = Math.min(12, weeksAvail);
+      const weeks = { keys: [], values: [] };
+      for (let i = weeksN - 1; i >= 0; i--) { const end = addDays(todayStr, -7 * i), start = addDays(end, -6); weeks.keys.push(start); weeks.values.push(sumBetween(start, end)); }
+
+      const todayMonth = first(todayStr), earliestMonth = first(earliest);
+      const monthsN = Math.min(12, Math.max(1, mdiff(todayMonth, earliestMonth) + 1));
+      const months = { keys: [], values: [] };
+      for (let i = monthsN - 1; i >= 0; i--) { const m = edate(todayMonth, -i); months.keys.push(m); months.values.push(sumBetween(m, eom(m))); }
+
+      out.spendTrend = { days, weeks, months };
+    }
 
     // ---------------- Loans
     const loans = S.loans.map(l => {
@@ -872,7 +906,7 @@ if (typeof module !== 'undefined') module.exports = sampleState;
 'use strict';
 let S = sampleState();
 let R = M.compute(S);
-const UI = { tab: 'dashboard', logFilter: 'month', tableUI: {} };
+const UI = { tab: 'dashboard', logFilter: 'month', tableUI: {}, spendTrend: { granularity: 'months' } };
 
 /* ---------------- helpers ---------------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -888,6 +922,7 @@ const fmt = v => !ok(v) ? '' : `${fm(v)} ${S.settings.currency || ''}`.trim();
 const fp = (v, d = 0) => !ok(v) ? '' : `${(v * 100).toFixed(d)}%`;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const fmon = (s, long) => { if (!s) return ''; const [y, m] = String(s).split('-').map(Number); if (!y || !m) return ''; return `${long ? MONTHS[m - 1] : MONTHS[m - 1].slice(0, 3)} ${y}`; };
+const fday = s => { if (!s) return ''; const [y, m, d] = String(s).split('-').map(Number); if (!y || !m || !d) return ''; return `${d} ${MONTHS[m - 1].slice(0, 3)}`; };
 const fdate = s => { if (!s) return ''; const [y, m, d] = String(s).split('-').map(Number); return d ? `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}` : fmon(s); };
 const abbr = v => { const a = Math.abs(v); return a >= 1e6 ? `${(v / 1e6).toFixed(a >= 1e7 ? 0 : 1)}M` : a >= 1e3 ? `${Math.round(v / 1e3)}K` : `${Math.round(v)}`; };
 const signCls = v => !ok(v) || Math.abs(v) < 0.5 ? '' : v < 0 ? 'neg' : 'pos';
@@ -1436,6 +1471,13 @@ const CHARTS = {
     const size = Math.min(220, Math.max(160, node.clientWidth > 520 ? 220 : node.clientWidth * .6));
     node.innerHTML = `<div class="pie-wrap"><div style="display:grid;place-items:center">${pieChart(slices, size)}</div><div class="pie-legend">${slices.map(s => `<div><i style="--lc:${s.color}"></i><span>${esc(s.label)}</span><span class="num">${fm(s.value)}</span><span class="p num">${fp(s.value / tot)}</span></div>`).join('')}</div></div>`;
   },
+  spendtrend(node, R) {
+    if (!S.log.length) { node.innerHTML = '<p class="empty">Log some spending on the Expenses tab to see your trend.</p>'; return; }
+    const g = UI.spendTrend.granularity, d = R.spendTrend[g];
+    const labelFmt = g === 'months' ? k => fmon(k).slice(0, 3) : fday;
+    node.innerHTML = barChart({ labels: d.keys.map(labelFmt), series: [{ name: 'Spending', color: C.out, values: d.values }], width: node.clientWidth })
+      + `<div class="chart-legend"><span><i style="--lc:${C.out}"></i>Total spending</span></div>`;
+  },
   loan(node, R) {
     const sc = R.loans.schedule;
     if (!sc.length) { node.innerHTML = '<p class="empty">Pick a loan with an amount, rate, length and first payment date.</p>'; return; }
@@ -1515,9 +1557,16 @@ const RENDER = {
         <div class="box"><h4>Money in vs money going out</h4><p class="sub small">Each month of your plan year.</p><div class="chart" data-chart="cashflow"></div></div>
         <div class="box"><h4>Goal progress</h4><div class="progress-list" data-b="goals"></div></div>
       </div>
+      <div class="box block">
+        <h4>Spending trend</h4>
+        <div class="seg" role="group" aria-label="Time period" data-b="trendseg"></div>
+        <div class="chart" data-chart="spendtrend"></div>
+      </div>
       <div class="box block"><h4>Budget check <span class="muted small" data-b="budgetmonth"></span></h4><div class="progress-list two" data-b="budget"></div></div>`;
     const B = k => $(`[data-b="${k}"]`, p);
     $$('[data-go]', p).forEach(b => b.addEventListener('click', () => showTab(b.dataset.go)));
+    const trendSeg = B('trendseg');
+    [['days', 'Days'], ['weeks', 'Weeks'], ['months', 'Months']].forEach(([k, l]) => trendSeg.appendChild(el('button', { type: 'button', 'aria-pressed': String(UI.spendTrend.granularity === k), onclick: e => { UI.spendTrend.granularity = k; $$('button', trendSeg).forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget))); refresh(); } }, l)));
     bind(B('firstrun'), (n, R) => {
       const fresh = R.dashboard.moneyIn === 0 && !S.loans.length && !S.holdings.length && !S.goals.length && !S.log.length &&
         !S.pots.some(pt => M.num(pt.balance) || M.num(pt.deposit)) &&
